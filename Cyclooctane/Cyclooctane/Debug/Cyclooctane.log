@@ -1,3 +1,4 @@
-﻿  源.cpp
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\源.cpp(9): warning C4700: 使用了未初始化的局部变量“hwnd”
+﻿  cyclooctane.cpp
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(126): warning C4996: 'kbhit': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _kbhit. See online help for details.
+          c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(133) : 参见“kbhit”的声明
   Cyclooctane.vcxproj -> G:\大一下\C++\黑框框\Cyclooctane\Cyclooctane\Debug\Cyclooctane.exe

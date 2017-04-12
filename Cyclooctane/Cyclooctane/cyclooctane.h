@@ -16,21 +16,36 @@ struct Boss;   //boss
 struct Prop;   //道具
 struct Obstacle;  // 障碍
 struct Room;  // 房间
+struct Bullet;  // 子弹
 
 void gotoxy(int x,int y);
-void startup();  //初始化 界面、游戏数据初始化
-void show();  
-void updateWithoutInput();  //与输入无关数据的更新
-void updateWithInput();  // 与输入相关数据更新
+void hidden();  //隐藏光标
+
+struct Bullet
+{
+	int pos_x,pos_y;
+	Bullet *next;
+public:
+
+};
 
 struct Charactor //角色
 {
 	string name;
 	int pos_x,pos_y;
-	int direction;
-	bool judge_round;
+	bool judge_round;   // 判断能否旋转地图  
+	Bullet *bullet;
+	int speed;
+	POINT print_chara[12];
 public:
-	void print_now();
+	Charactor();
+	~Charactor();
+	void print_cha_new(int x,int y,POINT print_chara[]);
+	void print_cha_old(int x,int y,POINT print_chara[]);
+	void new_point(int x,int y, POINT print_chara[]);
+	void print_round_new(int x,int y,POINT print_chara[]);
+	void print_part_cha_new(int x,int y, POINT print_chara[]);
+	void judge_input();
 };
 
 struct Monster //小怪
@@ -38,6 +53,7 @@ struct Monster //小怪
 protected:
 	string name;
 	int pos_x,pos_y;
+	int speed;
 public:
 	void print_now();
 };
@@ -64,7 +80,8 @@ public:
 struct Obstacle // 障碍
 {
 	int pos_x,pos_y;
-
+	int speed;
+	bool judge_show;
 public:
 	void print_now();
 };
@@ -72,7 +89,30 @@ public:
 struct Room  // 房间
 {
 	Obstacle *obstacle;
-
+	POINT pos_room[];
 public:
+	Room();
+	~Room();
 	void print_now();
+	void new_point();
+};
+struct Level   // 层
+{
+	static int num_level;
+public:
+	Room *room;
+	Level();
+	~Level();
+};
+
+struct Game
+{
+	Charactor ben;
+	Level *level;
+	Prop *prop;
+public:
+	void startup();
+	void updateWithInput();
+	void updateWithoutInput();
+	void show();
 };
