@@ -36,10 +36,10 @@ void Game::startup()
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
 	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
-	COORD size={150,40};
+	COORD size={150,43};
 	SetConsoleCursorPosition(hOut,size);
 	SetConsoleScreenBufferSize(hOut,size);
-	SMALL_RECT rc = {0,0, 150-1, 40-1};
+	SMALL_RECT rc = {0,0, 150-1, 43-1};
 	SetConsoleWindowInfo(hOut,true ,&rc);
 
 	::SelectObject(hdc,GetStockObject(DC_PEN));
@@ -49,7 +49,7 @@ void Game::startup()
 void Game::show()
 {
 	MoveToEx(hdc,100,0,NULL);
-	LineTo(hdc,100,918);
+	LineTo(hdc,100,990);
 }
 void Game::updateWithoutInput()
 {

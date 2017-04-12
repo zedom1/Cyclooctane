@@ -1,4 +1,6 @@
 ﻿  cyclooctane.cpp
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(126): warning C4996: 'kbhit': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _kbhit. See online help for details.
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.h(92): warning C4200: 使用了非标准扩展 : 结构/联合中的零大小数组
+          当 UDT 包含大小为零的数组时，无法生成复制构造函数或副本赋值运算符
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(130): warning C4996: 'kbhit': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _kbhit. See online help for details.
           c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(133) : 参见“kbhit”的声明
   Cyclooctane.vcxproj -> G:\大一下\C++\黑框框\Cyclooctane\Cyclooctane\Debug\Cyclooctane.exe
