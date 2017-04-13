@@ -17,6 +17,7 @@ struct Prop;   //道具
 struct Obstacle;  // 障碍
 struct Room;  // 房间
 struct Bullet;  // 子弹
+struct Square;
 
 void gotoxy(int x,int y);
 void hidden();  //隐藏光标
@@ -88,14 +89,14 @@ public:
 
 struct Room  // 房间
 {
-	Obstacle *obstacle;
-	POINT pos_room[];
 public:
-	Room();
-	~Room();
-	void print_now();
-	void new_point();
+	//Room();
+	//~Room();
+	virtual void new_room_point (int pos_x, int pos_y, double angle , POINT pos[])=0;
+	virtual void paint_room_new(int pos_x, int pos_y, POINT pos[], double angle)=0;
+	virtual void paint_room_old(int pos_x, int pos_y, POINT pos[],double angle)=0;
 };
+
 struct Level   // 层
 {
 	static int num_level;
@@ -105,14 +106,32 @@ public:
 	~Level();
 };
 
+struct Square: public Room
+{
+public:
+	int pos_x,pos_y;
+	double angle,init;
+	Obstacle *obstacle;
+	POINT pos[10];
+	Square();
+	~Square();
+	virtual void new_room_point (int pos_x, int pos_y, double angle , POINT pos[]);
+	virtual void paint_room_new(int pos_x, int pos_y, POINT pos[], double angle);
+	virtual void paint_room_old(int pos_x, int pos_y, POINT pos[],double angle);
+	virtual void judge_input(double speed,bool judge_round);
+};
+
 struct Game
 {
 	Charactor ben;
 	Level *level;
 	Prop *prop;
+//	Room *room;
+	Square square;
 public:
 	void startup();
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
+	bool judge_edge();
 };
