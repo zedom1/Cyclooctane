@@ -54,9 +54,43 @@ void Game::show()
 {
 //	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 //	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 }
 void Game::updateWithoutInput()
 {
+	if(ben.last!=ben.head)
+	{
+		Bullet *bul=ben.head->nex,*pre_bul=ben.head;
+		while(bul!=NULL)
+		{
+			bul->life--;
+			if(bul->life==0)
+				bul->exist=false;
+			if(bul->exist==true)
+			{
+				bul->print_bul_old(bul->pos_x,bul->pos_y);
+				bul->pos_x+=bul->speed*cos(bul->xita);
+				bul->pos_y-=bul->speed*sin(bul->xita);
+				bul->print_bul_new(bul->pos_x,bul->pos_y);
+			}
+			else
+			{
+				bul->print_bul_old(bul->pos_x,bul->pos_y);
+				if(bul->nex!=NULL)
+				{	pre_bul->nex=bul->nex;
+					delete bul;
+					bul=pre_bul->nex;
+					continue;
+				}
+			}
+			pre_bul=pre_bul->nex;
+			bul=bul->nex;
+		}
+	}
+	if(ben.head->nex==NULL)
+	{	ben.head->nex=ben.last;
+		ben.last->nex=NULL;
+	}
 
 }
 void Game::updateWithInput()
@@ -77,12 +111,20 @@ void Game::updateWithInput()
 		if(judge_edge()==false)
 		{ben.pos_x=old_x; ben.pos_y=old_y;}
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
-		ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	}
+	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	square.judge_input(ben.speed*3.0/100.0,ben.judge_round);
-	if(GetAsyncKeyState('Y')<0)
-	{	ben.judge_round=true;
-		ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+	if(GetAsyncKeyState('Y')<0) 
+	{	
+		if(ben.judge_round==false)
+		{	
+			ben.judge_round=true;
+			ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		}
+		else
+		{	ben.judge_round=false;
+			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		}
 	}
 }
 bool Game::judge_edge()
@@ -98,8 +140,8 @@ bool Game::judge_edge()
 			d=abs(ben.pos_x-square.pos[i].x);
 		if(d<43)
 		{
-			printf("%d %d %d %d  ",square.pos[i].x,square.pos[i].y,square.pos[j].x,square.pos[j].y);
-			printf("%lf %lf %d %d\n",k,b,c,abs(c)/sqrt(k*k+1));
+		//	printf("%d %d %d %d  ",square.pos[i].x,square.pos[i].y,square.pos[j].x,square.pos[j].y);
+		//	printf("%lf %lf %d %d\n",k,b,c,abs(c)/sqrt(k*k+1));
 			return false;
 		}
 	}
@@ -112,12 +154,17 @@ Charactor::Charactor()
 	pos_y=495;
 	speed=10;
 	name="Cyclooo~";
+	num_bul=0;
 	new_point(pos_x,pos_y,print_chara);
 	judge_round=false;
+	head=new Bullet(pos_x,pos_y,0);
+	last=head;
+	head->nex=NULL;
 }
 Charactor::~Charactor()
 {
-	delete []bullet;
+	delete head;
+	delete last;
 }
 void Charactor::print_cha_new(int x,int y,POINT print_chara[])
 {
@@ -151,19 +198,45 @@ void Charactor::new_point(int x,int y, POINT print_chara[])
 }
 void Charactor::print_round_new(int x,int y,POINT print_chara[])
 {
-	if(judge_round==false)
+	if(judge_round==true) return;
+	//time_count++;
+	//if(time_count<5) return;
+	//time_count=0;
 	if((GetAsyncKeyState(VK_UP)<0)||(GetAsyncKeyState(VK_DOWN)<0)||(GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{	
 		print_part_cha_new(x,y,print_chara);
 		::SetDCPenColor(hdc, RGB(217,31,37));
 		::SetDCBrushColor(hdc,RGB(217,31,37));
-		if(GetAsyncKeyState(VK_UP)<0) Ellipse(hdc,x-15,y-35,x+15,y-5);
-		if(GetAsyncKeyState(VK_DOWN)<0) Ellipse(hdc,x-15,y+5,x+15,y+35);
-		if(GetAsyncKeyState(VK_LEFT)<0) Ellipse(hdc,x-35,y-15,x-5,y+15); 
-		if(GetAsyncKeyState(VK_RIGHT)<0) Ellipse(hdc,x+5,y-15,x+35,y+15); 
+		if(GetAsyncKeyState(VK_UP)<0) 
+		{	
+			Ellipse(hdc,x-15,y-35,x+15,y-5);
+			last->nex=new Bullet(pos_x,pos_y-50,pi/2);
+			last=last->nex;
+		}
+		if(GetAsyncKeyState(VK_DOWN)<0) 
+		{	
+			Ellipse(hdc,x-15,y+5,x+15,y+35);
+			last->nex=new Bullet(pos_x,pos_y+50,pi*3/2);
+			last=last->nex;
+		}
+		if(GetAsyncKeyState(VK_LEFT)<0) 
+		{	
+			Ellipse(hdc,x-35,y-15,x-5,y+15); 
+			last->nex=new Bullet(pos_x-40,pos_y,pi);
+			last=last->nex;
+		}
+		if(GetAsyncKeyState(VK_RIGHT)<0) 
+		{	
+			Ellipse(hdc,x+5,y-15,x+35,y+15);
+			last->nex=new Bullet(pos_x+40,pos_y,0);
+			last=last->nex;
+		}
 	}
+	else
+		print_cha_new(pos_x,pos_y,print_chara);	
 	return ;
 }
+
 void Charactor::print_part_cha_new(int x,int y, POINT print_chara[])
 {
 	new_point(x,y,print_chara);
@@ -237,4 +310,26 @@ void Square::judge_input(double speed,bool judge_round)
 		paint_room_new(pos_x,pos_y,pos,angle);
 	}
 	return;
+}
+
+Bullet::Bullet(int x,int y,double xi)
+{
+	pos_x=x; pos_y=y;
+	xita=xi;
+	nex=NULL;
+	speed=10;
+	exist=true;
+	life=20;
+}
+void Bullet::print_bul_new(int pos_x, int pos_y)
+{
+	::SetDCPenColor(hdc, RGB(100,210,140));
+	::SetDCBrushColor(hdc,RGB(100,210,140));
+	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+}
+void Bullet::print_bul_old(int pos_x, int pos_y)
+{
+	::SetDCPenColor(hdc, RGB(0,0,0));
+	::SetDCBrushColor(hdc,RGB(0,0,0));
+	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
 }

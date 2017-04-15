@@ -22,7 +22,7 @@ int main()
 		cycloocatane.show();   // 显示画面
 		cycloocatane.updateWithoutInput();  // 与用户输入无关的更新
 		cycloocatane.updateWithInput();    // 与用户输入有关的更新
-		
+		cycloocatane.show();   // 显示画面
 		Sleep(50);
 	}
 	return 0;

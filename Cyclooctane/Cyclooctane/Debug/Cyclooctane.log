@@ -1,12 +1,14 @@
 ﻿  cyclooctane.cpp
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(185): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(186): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(187): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(188): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(189): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(191): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(192): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(193): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(194): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(195): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(72): warning C4244: “+=”: 从“double”转换到“int”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(73): warning C4244: “-=”: 从“double”转换到“int”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(258): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(259): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(260): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(261): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(262): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(264): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(265): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(266): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(267): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(268): warning C4244: “初始化”: 从“double”转换到“LONG”，可能丢失数据
   Cyclooctane.vcxproj -> G:\大一下\C++\黑框框\Cyclooctane\Cyclooctane\Debug\Cyclooctane.exe

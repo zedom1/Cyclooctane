@@ -25,9 +25,15 @@ void hidden();  //隐藏光标
 struct Bullet
 {
 	int pos_x,pos_y;
-	Bullet *next;
+	double xita;
+	bool exist;
+	int life;
+	int speed;
+	struct Bullet *nex;
 public:
-
+	Bullet(int x,int y,double xi);
+	void print_bul_new(int pos_x, int pos_y);
+	void print_bul_old(int pos_x, int pos_y);
 };
 
 struct Charactor //角色
@@ -35,7 +41,8 @@ struct Charactor //角色
 	string name;
 	int pos_x,pos_y;
 	bool judge_round;   // 判断能否旋转地图  
-	Bullet *bullet;
+	Bullet *head,*last;
+	int num_bul;
 	int speed;
 	POINT print_chara[12];
 public:
@@ -111,6 +118,7 @@ struct Square: public Room
 public:
 	int pos_x,pos_y;
 	double angle,init;
+	int num_com,num_go; //door
 	Obstacle *obstacle;
 	POINT pos[10];
 	Square();
