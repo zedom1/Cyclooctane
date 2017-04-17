@@ -31,10 +31,12 @@ struct Bullet
 	int speed;
 	struct Bullet *nex;
 public:
+	static int num_time_count;
 	Bullet(int x,int y,double xi);
 	void print_bul_new(int pos_x, int pos_y);
 	void print_bul_old(int pos_x, int pos_y);
 };
+
 
 struct Charactor //½ÇÉ«
 {
@@ -141,5 +143,7 @@ public:
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
-	bool judge_edge();
+	bool judge_edge(int start, int end, POINT pos[]);
+	void judge_bullet(int start, int end, POINT pos[], int &x, int &y, double &xita);
+	void update_bullet();
 };
