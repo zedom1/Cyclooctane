@@ -10,6 +10,7 @@
 #include <time.h>
 using namespace std;
 
+struct Vector;
 struct Charactor;  // 角色
 struct Monster;   //小怪
 struct Boss;   //boss
@@ -22,39 +23,56 @@ struct Square;
 void gotoxy(int x,int y);
 void hidden();  //隐藏光标
 
+struct Vector
+{
+	double x,y;
+public:
+	Vector(double x1, double y1);
+	Vector(const Vector& a);
+	Vector() ;
+
+	Vector operator = (Vector a);
+	Vector operator - (Vector a);
+
+	Vector vertical() ; //把向量变成其垂直向量
+	double get_lenth();
+	Vector new_normalize();
+	double dotmulti(Vector a);
+};
+
 struct Bullet
 {
-	int pos_x,pos_y;
+	double pos_x,pos_y;
 	double xita;
 	bool exist;
 	int life;
-	int speed;
+	double speed;
 	struct Bullet *nex;
 public:
 	static int num_time_count;
-	Bullet(int x,int y,double xi);
-	void print_bul_new(int pos_x, int pos_y);
-	void print_bul_old(int pos_x, int pos_y);
+	Bullet(double x,double y,double xi);
+	void print_bul_new(double pos_x, double pos_y);
+	void print_bul_old(double pos_x, double pos_y);
 };
 
 
 struct Charactor //角色
 {
 	string name;
-	int pos_x,pos_y;
+	double pos_x,pos_y;
 	bool judge_round;   // 判断能否旋转地图  
 	Bullet *head,*last;
 	int num_bul;
-	int speed;
+	double speed;
 	POINT print_chara[12];
 public:
 	Charactor();
 	~Charactor();
-	void print_cha_new(int x,int y,POINT print_chara[]);
-	void print_cha_old(int x,int y,POINT print_chara[]);
-	void new_point(int x,int y, POINT print_chara[]);
-	void print_round_new(int x,int y,POINT print_chara[]);
-	void print_part_cha_new(int x,int y, POINT print_chara[]);
+	void print_cha_new(double x,double y,POINT print_chara[]);
+	void print_cha_old(double x,double y,POINT print_chara[]);
+	void new_point(double x,double y, POINT print_chara[]);
+	void print_round_new(double x,double y,POINT print_chara[]);
+	void print_part_cha_new(double x,double y, POINT print_chara[]);
 	void judge_input();
 };
 
@@ -62,8 +80,8 @@ struct Monster //小怪
 {
 protected:
 	string name;
-	int pos_x,pos_y;
-	int speed;
+	double pos_x,pos_y;
+	double speed;
 public:
 	void print_now();
 };
@@ -80,7 +98,7 @@ struct Prop
 {
 	string name;
 	string describe;
-	int pos_x,pos_y;
+	double pos_x,pos_y;
 	bool eat;
 	bool exist;
 public:
@@ -89,8 +107,8 @@ public:
 
 struct Obstacle // 障碍
 {
-	int pos_x,pos_y;
-	int speed;
+	double pos_x,pos_y;
+	double speed;
 	bool judge_show;
 public:
 	void print_now();
@@ -101,9 +119,9 @@ struct Room  // 房间
 public:
 	//Room();
 	//~Room();
-	virtual void new_room_point (int pos_x, int pos_y, double angle , POINT pos[])=0;
-	virtual void paint_room_new(int pos_x, int pos_y, POINT pos[], double angle)=0;
-	virtual void paint_room_old(int pos_x, int pos_y, POINT pos[],double angle)=0;
+	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[])=0;
+	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle)=0;
+	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle)=0;
 };
 
 struct Level   // 层
@@ -115,19 +133,20 @@ public:
 	~Level();
 };
 
-struct Square: public Room
+struct Square
 {
 public:
-	int pos_x,pos_y;
+	double pos_x,pos_y;
 	double angle,init;
 	int num_com,num_go; //door
 	Obstacle *obstacle;
 	POINT pos[10];
+	POINT edge1[5],edge2[5],edge3[5],edge4[5];
 	Square();
 	~Square();
-	virtual void new_room_point (int pos_x, int pos_y, double angle , POINT pos[]);
-	virtual void paint_room_new(int pos_x, int pos_y, POINT pos[], double angle);
-	virtual void paint_room_old(int pos_x, int pos_y, POINT pos[],double angle);
+	virtual void new_room_point (double squ_x, double squ_y, double angle , POINT pos[]);
+	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle);
+	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle);
 	virtual void judge_input(double speed,bool judge_round);
 };
 
@@ -143,7 +162,9 @@ public:
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
-	bool judge_edge(int start, int end, POINT pos[]);
-	void judge_bullet(int start, int end, POINT pos[], int &x, int &y, double &xita);
+	void judge_bullet(int start, int end, POINT pos[], double &x, double &y, double &xita);
 	void update_bullet();
+	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
+	bool judge_coll();
+	void print_new();
 };
