@@ -304,6 +304,7 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -312,6 +313,7 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -320,6 +322,7 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -328,6 +331,7 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
 	return false;
@@ -596,6 +600,8 @@ void Square::judge_input(double speed,bool judge_round)
 	return;
 }
 
+
+
 Bullet::Bullet(double x,double y,double xi)
 {
 	pos_x=x; pos_y=y;
@@ -617,6 +623,7 @@ void Bullet::print_bul_old(double pos_x, double pos_y)
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
 }
+
 
 
 Vector::Vector(double x1, double y1)
