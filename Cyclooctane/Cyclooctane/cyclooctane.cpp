@@ -80,7 +80,10 @@ void Game::updateWithoutInput()
 	update_bullet();
 	judge_coll_chara_to_wall();
 	//print_new();
-//	monster.print_now(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+	if(monster.exist==true)
+	{	
+		monster.print_now(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+	}
 }
 void Game::update_bullet()
 {
@@ -100,8 +103,13 @@ void Game::update_bullet()
 				bul->print_bul_new(bul->pos_x,bul->pos_y);
 				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
 				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
-			//	if( judge_circle_coll(circle_up,circle_down,monster.pos,4)==false  )
-			//		bul->exist=false;
+				if( judge_circle_coll(circle_up,circle_down,monster.pos,5)==true  )
+				{	bul->exist=false;
+					monster.print_old(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+					monster.num_edge--;
+					if(monster.num_edge<3)
+						monster.exist=false;
+				}
 			}
 			else
 			{
@@ -365,7 +373,6 @@ bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[]
 			edge.y=mid_circle_y-second[i].y;
 		}
 	}
-	edge.vertical();  // 求得边的垂直向量作为投影轴
 	edge.new_normalize();   // 计算投影轴的单位向量
 
 	double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
@@ -388,6 +395,7 @@ bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[]
 	}
 	if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
 		return false;  // false代表没有发生碰撞
+	
 	return true;  //true代表发生了碰撞
 }
 
@@ -715,6 +723,7 @@ Monster::Monster(int num)
 	pos_y=600;
 	num_edge=num;
 	speed=10;
+	exist=true;
 }
 Monster::Monster()
 {
@@ -722,6 +731,7 @@ Monster::Monster()
 	pos_y=600;
 	speed=10;
 	num_edge=4;
+	exist=true;
 	new_point(pos_x,pos_y,num_edge,pos);
 }
 void Monster::new_point(int x, int y, int num_edge, POINT pos[])
@@ -750,8 +760,8 @@ void Monster::new_point(int x, int y, int num_edge, POINT pos[])
 void Monster::print_now(int x, int y, int num, POINT pos[])
 {
 	new_point(x,y,num,pos);
-	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
-	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+	::SetDCPenColor(hdc, RGB(255,153,18));  //镉黄色
+	::SetDCBrushColor(hdc,RGB(255,153,18)); //镉黄色
 	Polygon(hdc,pos ,num+1);
 }
 void Monster::print_old(int x, int y, int num, POINT pos[])

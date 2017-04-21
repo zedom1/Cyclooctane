@@ -85,6 +85,7 @@ public:
 	double pos_x,pos_y;
 	double speed;
 	int num_edge;
+	bool exist;
 	Monster(int num);
 	Monster();
 	POINT pos[10];
