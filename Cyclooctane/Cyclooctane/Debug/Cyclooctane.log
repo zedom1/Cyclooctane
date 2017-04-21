@@ -52,4 +52,7 @@ g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(5
 g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(647): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
 g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(653): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
 g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(735): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+  正在生成代码...
+  正在跳过...(未检测到相关更改)
+  源.cpp
   Cyclooctane.vcxproj -> G:\大一下\C++\黑框框\Cyclooctane\Cyclooctane\Debug\Cyclooctane.exe
