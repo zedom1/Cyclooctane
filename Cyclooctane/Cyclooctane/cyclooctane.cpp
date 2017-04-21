@@ -17,7 +17,7 @@ CONSOLE_SCREEN_BUFFER_INFO bInfo;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
 const double MAX_DOUBLE=1.79769e+308;
-const double MIN_DOUBLE=2.22507e-308;
+const double MIN_DOUBLE=-MAX_DOUBLE;
 const int MAX_INT=0x7FFFFFFF;
 const int MIN_INT=-MAX_INT-1;
 int Bullet::num_time_count=0;
