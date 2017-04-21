@@ -69,7 +69,7 @@ void Game::updateWithoutInput()
 {
 	update_bullet();
 	judge_coll();
-	print_new();
+	//print_new();
 }
 void Game::update_bullet()
 {
@@ -301,6 +301,7 @@ bool Game::judge_coll()
 	static int count=0;
 	if(judge_coll_single(ben.print_chara,7,square.edge1,5,shadow,num_move)==true)
 	{	
+		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
 		return true;
@@ -308,6 +309,7 @@ bool Game::judge_coll()
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge2,5,shadow,num_move)==true)
 	{	
+		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
 		return true;
@@ -315,6 +317,7 @@ bool Game::judge_coll()
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge3,5,shadow,num_move)==true)
 	{	
+		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
 		return true;
@@ -322,6 +325,7 @@ bool Game::judge_coll()
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge4,5,shadow,num_move)==true)
 	{	
+		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
 		return true;
@@ -352,7 +356,7 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 	new_point(x,y,print_chara);
 	::SetDCPenColor(hdc, RGB(123,123,123));  //»ÒÉ«
 	::SetDCBrushColor(hdc,RGB(123,123,123)); //»ÒÉ«
-	Polygon(hdc,print_chara ,6);
+	Polygon(hdc,print_chara ,7);
 	if(judge_round==false)
 	{	
 		::SetDCPenColor(hdc, RGB(217,31,37)); //ºìÉ«
@@ -373,12 +377,12 @@ void Charactor::print_cha_old(double x,double y,POINT print_chara[])
 	new_point(x,y,print_chara);
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
-	Polygon(hdc,print_chara ,6);
+	Polygon(hdc,print_chara ,7);
 }
 void Charactor::new_point(double x,double y, POINT print_chara[])
 {
-	POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14};
-	for(int i=0; i<6 ; i++)
+	POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
+	for(int i=0; i<7 ; i++)
 	{
 		print_chara[i].x=apt1[i].x;
 		print_chara[i].y=apt1[i].y;
@@ -470,7 +474,7 @@ void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 	new_point(x,y,print_chara);
 	::SetDCPenColor(hdc, RGB(123,123,123));
 	::SetDCBrushColor(hdc,RGB(123,123,123));
-	Polygon(hdc,print_chara ,6);
+	Polygon(hdc,print_chara ,7);
 	return;
 }
 void Charactor::judge_input()

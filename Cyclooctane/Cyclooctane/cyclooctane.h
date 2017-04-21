@@ -64,7 +64,7 @@ struct Charactor //角色
 	Bullet *head,*last;
 	int num_bul;
 	double speed;
-	POINT print_chara[12];
+	POINT print_chara[14];
 public:
 	Charactor();
 	~Charactor();
@@ -136,18 +136,18 @@ public:
 struct Square
 {
 public:
-	double pos_x,pos_y;
-	double angle,init;
+	double pos_x,pos_y;   // 中心坐标
+	double angle,init;   //init为初始角度 ,angle为变化角度
 	int num_com,num_go; //door
-	Obstacle *obstacle;
+	//Obstacle *obstacle;
 	POINT pos[10];
 	POINT edge1[5],edge2[5],edge3[5],edge4[5];
 	Square();
 	~Square();
-	virtual void new_room_point (double squ_x, double squ_y, double angle , POINT pos[]);
-	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle);
-	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle);
-	virtual void judge_input(double speed,bool judge_round);
+	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[]); //更新坐标数组
+	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle); // 画新房间
+	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle); //抹去旧房间
+	virtual void judge_input(double speed,bool judge_round);   // 根据输入更新角度
 };
 
 struct Game
