@@ -16,7 +16,12 @@ HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
+const double MAX_DOUBLE=1.79769e+308;
+const double MIN_DOUBLE=-MAX_DOUBLE;
+const int MAX_INT=0x7FFFFFFF;
+const int MIN_INT=-MAX_INT-1;
 int Bullet::num_time_count=0;
+
 void gotoxy(int x,int y)
 {
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -32,6 +37,8 @@ void hidden()
 	cci.bVisible=0;//赋1为显示，赋0为隐藏
 	SetConsoleCursorInfo(hOut,&cci);
 }
+
+
 void Game::startup()
 {
 	hidden();
@@ -50,6 +57,9 @@ void Game::startup()
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 	
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+	
+	
+//	monster.print_now(600,600,4,monster.pos);
 }
 void Game::show()
 {
@@ -68,8 +78,12 @@ void Game::print_new()
 void Game::updateWithoutInput()
 {
 	update_bullet();
-	judge_coll();
+	judge_coll_chara_to_wall();
 	//print_new();
+	if(monster.exist==true)
+	{	
+		monster.print_now(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+	}
 }
 void Game::update_bullet()
 {
@@ -88,6 +102,14 @@ void Game::update_bullet()
 				bul->pos_y-=bul->speed*sinf(bul->xita);
 				bul->print_bul_new(bul->pos_x,bul->pos_y);
 				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
+				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
+				if( judge_circle_coll(circle_up,circle_down,monster.pos,5)==true  )
+				{	bul->exist=false;
+					monster.print_old(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+					monster.num_edge--;
+					if(monster.num_edge<3)
+						monster.exist=false;
+				}
 			}
 			else
 			{
@@ -197,12 +219,12 @@ void Game::judge_bullet(int start, int end, POINT pos[], double &x, double &y, d
 }
 bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector& shadow, double& num_move)
 {
-	double min_move=99999999;
+	double min_move=MAX_DOUBLE;
 	int flag=0;
 	for(int i=0; i<num_first; i++)   // 求第一个图形的各个投影轴
 	{
-		double maxn_first=-99999999,minx_first=99999999;
-		double maxn_second=-9999999,minx_second=99999999;
+		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
 		int j=i+1;
 		Vector *v1=new Vector( first[i].x,first[i].y);
 		Vector *v2=new Vector( first[j].x,first[j].y);
@@ -247,8 +269,8 @@ bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int n
 		return false;  // false代表没有发生碰撞
 	for(int i=0; i<num_second; i++)   // 求第一个图形的各个投影轴
 	{
-		double maxn_first=-99999999,minx_first=99999999;
-		double maxn_second=-9999999,minx_second=99999999;
+		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
 		int j=i+1;
 		Vector *v1=new Vector( second[i].x,second[i].y);
 		Vector *v2=new Vector( second[j].x,second[j].y);
@@ -294,7 +316,7 @@ bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int n
 	num_move=min_move;
 	return true;  //true代表发生了碰撞
 }
-bool Game::judge_coll()
+bool Game::judge_coll_chara_to_wall()
 {
 	Vector shadow;
 	double num_move=0;
@@ -304,7 +326,11 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+=======
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
+>>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -313,7 +339,11 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+=======
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
+>>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -322,7 +352,11 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+=======
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
+>>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -331,11 +365,56 @@ bool Game::judge_coll()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
+<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+=======
+		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
+>>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	return false;
 }
+bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second)
+{
+	int flag=0;
+	Vector edge;   
+	double minx=MAX_DOUBLE;
+	double mid_circle_x=(circle_up.x+circle_down.x)*1.0/2.0,mid_circle_y=(circle_up.y+circle_down.y)*1.0/2.0;
+	for(int i=0; i<num_second ; i++) // 找出多边形与圆心距离最小的点，并将连线作为投影轴
+	{
+		double tot= (mid_circle_x-second[i].x)*(mid_circle_x-second[i].x)+(mid_circle_y-second[i].y)*(mid_circle_y-second[i].y) ;
+		if(tot<minx)
+		{
+			edge.x=mid_circle_x-second[i].x;
+			edge.y=mid_circle_y-second[i].y;
+		}
+	}
+	edge.new_normalize();   // 计算投影轴的单位向量
+
+	double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+	double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
+
+	{  // 找出子弹在投影轴的投影值
+		double tot=circle_up.dotmulti(edge);
+		maxn_first=max(tot,maxn_first);
+		minx_first=min(tot,minx_first);	
+		tot=circle_down.dotmulti(edge);
+		maxn_first=max(tot,maxn_first);
+		minx_first=min(tot,minx_first);
+	}
+	for(int k=0; k<num_second; k++) //找出多边形在投影轴的投影值
+	{
+		Vector tem(second[k].x,second[k].y);
+		double tot=tem.dotmulti(edge);
+		maxn_second=max(tot,maxn_second);
+		minx_second=min(tot,minx_second);
+	}
+	if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
+		return false;  // false代表没有发生碰撞
+	
+	return true;  //true代表发生了碰撞
+}
+
 
 Charactor::Charactor()
 {
@@ -433,46 +512,10 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 			return;
 		}
 	}
-	/*if(kbhit())
-	{
-		char order=getch();
-		print_part_cha_new(x,y,print_chara);
-		::SetDCPenColor(hdc, RGB(217,31,37));
-		::SetDCBrushColor(hdc,RGB(217,31,37));
-		if(order=='i')
-		{
-				Ellipse(hdc,x-10,y-25,x+10,y-5);
-				last->nex=new Bullet(pos_x,pos_y-25,pi/2);
-				last=last->nex;
-				return;
-		}
-		if(order=='k')
-		{	
-			Ellipse(hdc,x-10,y+5,x+10,y+25);
-			last->nex=new Bullet(pos_x,pos_y+25,pi*3/2);
-			last=last->nex;
-			return;
-		}
-		if(order=='j')
-		{	
-			Ellipse(hdc,x-25,y-10,x-5,y+10); 
-			last->nex=new Bullet(pos_x-25,pos_y,pi+0.1);
-			last=last->nex;
-			return;
-		}
-		if(order=='l')
-		{	
-			Ellipse(hdc,x+5,y-10,x+25,y+10);
-			last->nex=new Bullet(pos_x+25,pos_y,0);
-			last=last->nex;
-			return;
-		}
-	}*/
 	else
 		print_cha_new(pos_x,pos_y,print_chara);	
 	return ;
 }
-
 void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 {
 	new_point(x,y,print_chara);
@@ -485,6 +528,8 @@ void Charactor::judge_input()
 {
 	
 }
+
+
 
 void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos[])
 {
@@ -638,17 +683,6 @@ Vector::Vector()
 {
 	x=0;  y=0;
 }
-Vector Vector::operator = (Vector a)
-{
-	x=a.x; y=a.y;
-	return *this;
-}
-Vector Vector::operator - (Vector a)
-{
-	Vector tem;
-	tem.x=x-a.x; tem.y=y-a.y;
-	return tem;
-}
 Vector Vector::vertical()  //把向量变成其垂直向量
 {
 	double tem=x; x=y; y=-tem;
@@ -667,4 +701,89 @@ Vector Vector::new_normalize()
 double Vector::dotmulti(Vector a)
 {
 	return a.x*x+a.y*y;
+}
+Vector Vector::operator = (Vector a)
+{
+	x=a.x; y=a.y;
+	return *this;
+}
+Vector Vector::operator - (Vector a)
+{
+	Vector tem;
+	tem.x=x-a.x; tem.y=y-a.y;
+	return tem;
+}
+Vector Vector::operator + (Vector a)
+{
+	Vector tem;
+	tem.x=x+a.x; tem.y=y+a.y;
+	return tem;
+}
+Vector Vector::operator * (double a)
+{
+	Vector tem;
+	tem.x=x*a; tem.y=y*a;
+	return tem;
+}
+Vector Vector::operator / (double a)
+{
+	Vector tem;
+	tem.x=x/a; tem.y=y/a;
+	return tem;
+}
+
+
+Monster::Monster(int num)
+{
+	pos_x=1000;
+	pos_y=600;
+	num_edge=num;
+	speed=10;
+	exist=true;
+}
+Monster::Monster()
+{
+	pos_x=1000;
+	pos_y=600;
+	speed=10;
+	num_edge=4;
+	exist=true;
+	new_point(pos_x,pos_y,num_edge,pos);
+}
+void Monster::new_point(int x, int y, int num_edge, POINT pos[])
+{
+	if(num_edge==3)
+	{
+		POINT temp[]={x+20, y-20, x-20 , y-20, x, y+20 ,x+20, y-20 };
+		for(int i=0; i<num_edge+1; i++)
+		{
+			pos[i].x=temp[i].x;
+			pos[i].y=temp[i].y;
+		}
+	}
+	if(num_edge==4)
+	{
+		POINT temp[]={x-20,y-20, x+20,y-20, x+20,y+20, x-20,y+20, x-20,y-20};
+		//POINT temp[]={x-100,y-100,x+100,y-100,x-100,y+100,x+100,y+100,x-100,y-100};
+		for(int i=0; i<num_edge+1; i++)
+		{
+			pos[i].x=temp[i].x;
+			pos[i].y=temp[i].y;
+		}
+	}
+	
+}
+void Monster::print_now(int x, int y, int num, POINT pos[])
+{
+	new_point(x,y,num,pos);
+	::SetDCPenColor(hdc, RGB(255,153,18));  //镉黄色
+	::SetDCBrushColor(hdc,RGB(255,153,18)); //镉黄色
+	Polygon(hdc,pos ,num+1);
+}
+void Monster::print_old(int x, int y, int num, POINT pos[])
+{
+	new_point(x,y,num,pos);
+	::SetDCPenColor(hdc, RGB(0,0,0));  
+	::SetDCBrushColor(hdc,RGB(0,0,0)); 
+	Polygon(hdc,pos ,num+1);
 }
