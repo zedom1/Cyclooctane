@@ -33,6 +33,9 @@ public:
 
 	Vector operator = (Vector a);
 	Vector operator - (Vector a);
+	Vector operator + (Vector a);
+	Vector operator * (double a);
+	Vector operator / (double a);
 
 	Vector vertical() ; //把向量变成其垂直向量
 	double get_lenth();
@@ -54,7 +57,6 @@ public:
 	void print_bul_new(double pos_x, double pos_y);
 	void print_bul_old(double pos_x, double pos_y);
 };
-
 
 struct Charactor //角色
 {
@@ -78,15 +80,20 @@ public:
 
 struct Monster //小怪
 {
-protected:
+public:
 	string name;
 	double pos_x,pos_y;
 	double speed;
-public:
-	void print_now();
+	int num_edge;
+	Monster(int num);
+	Monster();
+	POINT pos[10];
+	void print_now(int x, int y, int num, POINT pos[]);
+	void new_point(int x, int y, int num, POINT pos[]);
+	void print_old(int x, int y, int num, POINT pos[]);
 };
 
-struct Boss:public Monster // Boss
+struct Boss//:public Monster // Boss
 {
 	
 public:
@@ -157,6 +164,7 @@ struct Game
 	Prop *prop;
 //	Room *room;
 	Square square;
+	Monster monster;
 public:
 	void startup();
 	void updateWithInput();
@@ -165,6 +173,7 @@ public:
 	void judge_bullet(int start, int end, POINT pos[], double &x, double &y, double &xita);
 	void update_bullet();
 	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
-	bool judge_coll();
+	bool judge_coll_chara_to_wall();
 	void print_new();
+	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
 };
