@@ -89,9 +89,11 @@ public:
 	Monster(int num);
 	Monster();
 	POINT pos[10];
+	static int num_total;
 	void print_now(int x, int y, int num, POINT pos[]);
 	void new_point(int x, int y, int num, POINT pos[]);
 	void print_old(int x, int y, int num, POINT pos[]);
+	void create_new_monster();
 };
 
 struct Boss//:public Monster // Boss
@@ -150,6 +152,7 @@ public:
 	//Obstacle *obstacle;
 	POINT pos[10];
 	POINT edge1[5],edge2[5],edge3[5],edge4[5];
+	POINT teleport[4][2];
 	Square();
 	~Square();
 	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[]); //更新坐标数组
@@ -165,7 +168,7 @@ struct Game
 	Prop *prop;
 //	Room *room;
 	Square square;
-	Monster monster;
+	Monster monster[100];
 public:
 	void startup();
 	void updateWithInput();
@@ -177,4 +180,6 @@ public:
 	bool judge_coll_chara_to_wall();
 	void print_new();
 	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
+	void judge_coll_mon_to_wall();
+	void judge_coll_cha_to_mon();
 };

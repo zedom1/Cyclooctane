@@ -21,6 +21,8 @@ const double MIN_DOUBLE=-MAX_DOUBLE;
 const int MAX_INT=0x7FFFFFFF;
 const int MIN_INT=-MAX_INT-1;
 int Bullet::num_time_count=0;
+int Monster::num_total=0;
+int num_monster_fresh=0;
 
 void gotoxy(int x,int y)
 {
@@ -79,11 +81,22 @@ void Game::updateWithoutInput()
 {
 	update_bullet();
 	judge_coll_chara_to_wall();
+	judge_coll_mon_to_wall();
+	judge_coll_cha_to_mon();
 	//print_new();
-	if(monster.exist==true)
+	num_monster_fresh++;
+	if(num_monster_fresh>5)
 	{	
-		monster.print_now(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
+		num_monster_fresh=0;
+		monster[Monster::num_total++].create_new_monster();
+		if(Monster::num_total>90)
+			Monster::num_total=0;
 	}
+	for(int i=0 ; i<100; i++)
+		if(monster[i].exist==true)
+		{
+			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+		}
 }
 void Game::update_bullet()
 {
@@ -103,13 +116,19 @@ void Game::update_bullet()
 				bul->print_bul_new(bul->pos_x,bul->pos_y);
 				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
 				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
-				if( judge_circle_coll(circle_up,circle_down,monster.pos,5)==true  )
-				{	bul->exist=false;
-					monster.print_old(monster.pos_x,monster.pos_y,monster.num_edge,monster.pos);
-					monster.num_edge--;
-					if(monster.num_edge<3)
-						monster.exist=false;
-				}
+				for(int i=0; i<100; i++)
+					if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
+					{	
+						bul->exist=false;
+						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+						monster[i].num_edge--;
+						if(monster[i].num_edge<3)
+						{	
+							monster[i].exist=false;
+						}
+						if(monster[i].exist!=false)
+							monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					}
 			}
 			else
 			{
@@ -320,7 +339,6 @@ bool Game::judge_coll_chara_to_wall()
 {
 	Vector shadow;
 	double num_move=0;
-	static int count=0;
 	if(judge_coll_single(ben.print_chara,7,square.edge1,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
@@ -398,7 +416,62 @@ bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[]
 	
 	return true;  //true代表发生了碰撞
 }
-
+void Game::judge_coll_mon_to_wall()
+{
+	Vector shadow;
+	for(int i=0; i<100; i++)
+		if(monster[i].exist)
+		{
+			double num_move=0;
+			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge1,5,shadow,num_move)==true)
+			{	
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				monster[i].pos_x-=shadow.x*num_move;
+				monster[i].pos_y-=shadow.y*num_move;
+				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
+			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge2,5,shadow,num_move)==true)
+			{	
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				monster[i].pos_x-=shadow.x*num_move;
+				monster[i].pos_y-=shadow.y*num_move;
+				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
+			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge3,5,shadow,num_move)==true)
+			{	
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				monster[i].pos_x-=shadow.x*num_move;
+				monster[i].pos_y-=shadow.y*num_move;
+				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
+			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge4,5,shadow,num_move)==true)
+			{
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				monster[i].pos_x-=shadow.x*num_move;
+				monster[i].pos_y-=shadow.y*num_move;
+				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
+		}
+	
+	return ;
+}
+void Game::judge_coll_cha_to_mon()
+{
+	Vector shadow;
+	for(int i=0; i<100; i++)
+		if(monster[i].exist)
+		{
+			double num_move=0;
+			if(judge_coll_single(monster[i].pos,monster[i].num_edge,ben.print_chara,7,shadow,num_move)==true)
+			{	
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				monster[i].pos_x-=shadow.x*num_move;
+				monster[i].pos_y-=shadow.y*num_move;
+				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
+		}
+		return ;
+}
 
 Charactor::Charactor()
 {
@@ -719,18 +792,15 @@ Vector Vector::operator / (double a)
 
 Monster::Monster(int num)
 {
-	pos_x=1000;
-	pos_y=600;
-	num_edge=num;
-	speed=10;
-	exist=true;
+	create_new_monster();
 }
 Monster::Monster()
 {
 	pos_x=1000;
 	pos_y=600;
 	speed=10;
-	num_edge=4;
+	srand(time(0));
+	num_edge=rand()%4+3;
 	exist=true;
 	new_point(pos_x,pos_y,num_edge,pos);
 }
@@ -755,13 +825,50 @@ void Monster::new_point(int x, int y, int num_edge, POINT pos[])
 			pos[i].y=temp[i].y;
 		}
 	}
-	
+	if(num_edge==5)
+	{
+		POINT temp[]={x,y-25,  x-25,y-3 ,x-15,y+25,x+15,y+25 ,  x+25,y-3  ,x,y-25};
+		//POINT temp[]={x-100,y-100,x+100,y-100,x-100,y+100,x+100,y+100,x-100,y-100};
+		for(int i=0; i<num_edge+1; i++)
+		{
+			pos[i].x=temp[i].x;
+			pos[i].y=temp[i].y;
+		}
+	}
+	if(num_edge==6)
+	{
+		POINT temp[]={x,y-30,x-25,y-15,x-25,y+15,x,y+30,x+25,y+15,x+25,y-15,x,y-30};
+		//POINT temp[]={x-100,y-100,x+100,y-100,x-100,y+100,x+100,y+100,x-100,y-100};
+		for(int i=0; i<num_edge+1; i++)
+		{
+			pos[i].x=temp[i].x;
+			pos[i].y=temp[i].y;
+		}
+	}
 }
 void Monster::print_now(int x, int y, int num, POINT pos[])
 {
 	new_point(x,y,num,pos);
-	::SetDCPenColor(hdc, RGB(255,153,18));  //镉黄色
-	::SetDCBrushColor(hdc,RGB(255,153,18)); //镉黄色
+	if(num_edge==3)
+	{
+		::SetDCPenColor(hdc, RGB(255,99,71));  
+		::SetDCBrushColor(hdc,RGB(64,224,205)); 
+	}
+	if(num_edge==4)
+	{
+		::SetDCPenColor(hdc, RGB(255,0,202));  
+		::SetDCBrushColor(hdc,RGB(255,192,202)); 
+	}
+	if(num_edge==5)
+	{
+		::SetDCPenColor(hdc, RGB(64,224,205));  
+		::SetDCBrushColor(hdc,RGB(245,245,245)); 
+	}
+	if(num_edge==6)
+	{
+		::SetDCPenColor(hdc, RGB(0,255,0));  
+		::SetDCBrushColor(hdc,RGB(160,32,240)); 
+	}
 	Polygon(hdc,pos ,num+1);
 }
 void Monster::print_old(int x, int y, int num, POINT pos[])
@@ -770,4 +877,16 @@ void Monster::print_old(int x, int y, int num, POINT pos[])
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
 	Polygon(hdc,pos ,num+1);
+}
+void Monster::create_new_monster()
+{
+	exist=true;
+	srand(time(0));
+	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
+	
+	pos_x=rand1*rand()%300+900;   // 900 495
+	pos_y=rand2*rand()%300+495;
+	speed=10;
+	num_edge=rand()%4+3;
+	new_point(pos_x,pos_y,num_edge,pos);
 }
