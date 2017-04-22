@@ -326,11 +326,7 @@ bool Game::judge_coll_chara_to_wall()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
-<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-=======
-		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
->>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -339,11 +335,7 @@ bool Game::judge_coll_chara_to_wall()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
-<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-=======
-		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
->>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -352,11 +344,7 @@ bool Game::judge_coll_chara_to_wall()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
-<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-=======
-		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
->>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
@@ -365,11 +353,7 @@ bool Game::judge_coll_chara_to_wall()
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*num_move;
 		ben.pos_y-=shadow.y*num_move;
-<<<<<<< HEAD
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-=======
-		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
->>>>>>> mmmmmmmmmonster
 		return true;
 	}
 	return false;
