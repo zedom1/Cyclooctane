@@ -159,6 +159,8 @@ public:
 	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle); // 画新房间
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle); //抹去旧房间
 	virtual void judge_input(double speed,bool judge_round);   // 根据输入更新角度
+
+	void tester();
 };
 
 struct Game
@@ -168,7 +170,7 @@ struct Game
 	Prop *prop;
 //	Room *room;
 	Square square;
-	Monster monster[100];
+	Monster monster[500];
 public:
 	void startup();
 	void updateWithInput();
@@ -182,4 +184,7 @@ public:
 	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
 	void judge_coll_mon_to_wall();
 	void judge_coll_cha_to_mon();
+	void judge_coll_mon_to_mon();
+
+	
 };

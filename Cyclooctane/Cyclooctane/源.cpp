@@ -11,12 +11,10 @@
 #include "cyclooctane.h"
 using namespace std;
 
-
 int main()
 {
 	Game cycloocatane;
 	cycloocatane.startup();    // 数据初始化
-	srand(time(0));
 	while(1)  //  游戏循环执行
 	{
 		cycloocatane.show();   // 显示画面

@@ -10,10 +10,12 @@
 #include <time.h>
 #include "cyclooctane.h"
 using namespace std;
+#pragma warning(disable:4244)
 HDC hdc;
 HWND hwnd;
 HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
+Vector temp_vector;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
 const double MAX_DOUBLE=1.79769e+308;
@@ -23,6 +25,7 @@ const int MIN_INT=-MAX_INT-1;
 int Bullet::num_time_count=0;
 int Monster::num_total=0;
 int num_monster_fresh=0;
+int num_fresh_count=0;
 
 void gotoxy(int x,int y)
 {
@@ -44,6 +47,7 @@ void hidden()
 void Game::startup()
 {
 	hidden();
+	srand(time(0));
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
@@ -53,11 +57,11 @@ void Game::startup()
 	SetConsoleScreenBufferSize(hOut,size);
 	SMALL_RECT rc = {0,0, 150-1, 43-1};
 	SetConsoleWindowInfo(hOut,true ,&rc);
-
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+
+
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-	
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 	
 	
@@ -65,9 +69,10 @@ void Game::startup()
 }
 void Game::show()
 {
-//	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-//	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+//	square.tester();
+//	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 }
 void Game::print_new()
 {
@@ -79,24 +84,26 @@ void Game::print_new()
 }
 void Game::updateWithoutInput()
 {
-	update_bullet();
-	judge_coll_chara_to_wall();
-	judge_coll_mon_to_wall();
-	judge_coll_cha_to_mon();
-	//print_new();
 	num_monster_fresh++;
-	if(num_monster_fresh>5)
+	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
 		monster[Monster::num_total++].create_new_monster();
-		if(Monster::num_total>90)
+		if(Monster::num_total>400)
 			Monster::num_total=0;
 	}
-	for(int i=0 ; i<100; i++)
+	for(int i=0 ; i<400; i++)
 		if(monster[i].exist==true)
 		{
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
+
+	update_bullet();
+	judge_coll_cha_to_mon();
+	judge_coll_mon_to_mon();
+	judge_coll_chara_to_wall();
+	judge_coll_mon_to_wall();
+	//print_new();
 }
 void Game::update_bullet()
 {
@@ -116,7 +123,7 @@ void Game::update_bullet()
 				bul->print_bul_new(bul->pos_x,bul->pos_y);
 				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
 				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
-				for(int i=0; i<100; i++)
+				for(int i=0; i<400; i++)
 					if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
 					{	
 						bul->exist=false;
@@ -419,7 +426,7 @@ bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[]
 void Game::judge_coll_mon_to_wall()
 {
 	Vector shadow;
-	for(int i=0; i<100; i++)
+	for(int i=0; i<400; i++)
 		if(monster[i].exist)
 		{
 			double num_move=0;
@@ -458,7 +465,7 @@ void Game::judge_coll_mon_to_wall()
 void Game::judge_coll_cha_to_mon()
 {
 	Vector shadow;
-	for(int i=0; i<100; i++)
+	for(int i=0; i<400; i++)
 		if(monster[i].exist)
 		{
 			double num_move=0;
@@ -470,8 +477,29 @@ void Game::judge_coll_cha_to_mon()
 				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 			}
 		}
-		return ;
+	return ;
 }
+void Game::judge_coll_mon_to_mon()
+{
+	Vector shadow;
+	for(int i=0; i<400; i++)
+		if(monster[i].exist)
+			for(int j=i+1; j<400; j++)
+				if(monster[j].exist)
+				{
+					double num_move=0;
+					if(judge_coll_single(monster[i].pos,monster[i].num_edge,monster[j].pos,monster[j].num_edge,shadow,num_move)==true)
+					{	
+						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+						//monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+						monster[i].pos_x-=shadow.x*num_move;
+						monster[i].pos_y-=shadow.y*num_move;
+						monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					}
+				}
+	return ;
+}
+
 
 Charactor::Charactor()
 {
@@ -587,10 +615,25 @@ void Charactor::judge_input()
 }
 
 
-
+void Square::tester()
+{
+	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2); double tot=0.0822469;
+	POINT  tedge1[]=
+	{
+		pos_x+r2*cos(init*3.0+angle),     pos_y-r2*sin(3.0*init+angle-tot),
+		pos_x+r2*cos(init*5.0+angle),     pos_y-r2*sin(init*5.0+angle+tot),
+		pos_x+r1*cos(init*5.0+angle),     pos_y-r1*sin(init*5.0+angle+tot),
+		pos_x+r1*cos(init*3.0+angle),     pos_y-r1*sin(3.0*init+angle-tot),
+		pos_x+r2*cos(init*3.0+angle),     pos_y-r2*sin(3.0*init+angle-tot)
+	};
+	::SetDCPenColor(hdc, RGB(0,0,255));
+	::SetDCBrushColor(hdc,RGB(0,0,255));
+	Polygon(hdc,tedge1 ,5);
+}  
 void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos[])
 {
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
+	double tot=0.0822469;
 	POINT squ1[]=
 	{
 		squ_x+r1*cos(init*3.0+angle),     squ_y-r1*sin(3.0*init+angle),		//×óÉÏÔ¶
@@ -607,7 +650,7 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	};
 	POINT  tedge1[]=
 	{
-		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),	
+		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),
 		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),
 		squ_x+r1*cos(init*5.0+angle),     squ_y-r1*sin(init*5.0+angle),
 		squ_x+r1*cos(init*3.0+angle),     squ_y-r1*sin(3.0*init+angle),
@@ -615,11 +658,11 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	};
 	POINT tedge2[]=
 	{
-		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),	
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle),
 		squ_x+r1*cos(init+angle),     squ_y-r1*sin(init+angle),
-		squ_x+r1*cos(-init+angle),     squ_y-r1*sin(-init+angle),	
-		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),
+		squ_x+r1*cos(-init+angle),     squ_y-r1*sin(-init+angle),
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle)
 	};
 	POINT tedge3[]=
 	{
@@ -766,43 +809,41 @@ Vector Vector::operator = (Vector a)
 }
 Vector Vector::operator - (Vector a)
 {
-	Vector tem;
-	tem.x=x-a.x; tem.y=y-a.y;
-	return tem;
+	temp_vector.x=x-a.x; temp_vector.y=y-a.y;
+	return temp_vector;
 }
 Vector Vector::operator + (Vector a)
 {
-	Vector tem;
-	tem.x=x+a.x; tem.y=y+a.y;
-	return tem;
+	temp_vector.x=x+a.x; temp_vector.y=y+a.y;
+	return temp_vector;
 }
 Vector Vector::operator * (double a)
 {
-	Vector tem;
-	tem.x=x*a; tem.y=y*a;
-	return tem;
+	temp_vector.x=x*a; temp_vector.y=y*a;
+	return temp_vector;
 }
 Vector Vector::operator / (double a)
 {
-	Vector tem;
-	tem.x=x/a; tem.y=y/a;
-	return tem;
+	temp_vector.x=x/a; temp_vector.y=y/a;
+	return temp_vector;
 }
 
 
 Monster::Monster(int num)
 {
-	create_new_monster();
+//	create_new_monster();
+	exist=false;
 }
 Monster::Monster()
 {
-	pos_x=1000;
+/*	pos_x=1000;
 	pos_y=600;
 	speed=10;
 	srand(time(0));
 	num_edge=rand()%4+3;
 	exist=true;
-	new_point(pos_x,pos_y,num_edge,pos);
+	new_point(pos_x,pos_y,num_edge,pos);*/
+	exist=false;
 }
 void Monster::new_point(int x, int y, int num_edge, POINT pos[])
 {
@@ -881,7 +922,7 @@ void Monster::print_old(int x, int y, int num, POINT pos[])
 void Monster::create_new_monster()
 {
 	exist=true;
-	srand(time(0));
+	
 	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
 	
 	pos_x=rand1*rand()%300+900;   // 900 495
