@@ -16,7 +16,7 @@ HWND hwnd;
 HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
-HPEN hpen; 
+HPEN hPen; 
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
 const double MAX_DOUBLE=1.79769e+308;
@@ -110,7 +110,7 @@ void Game::startup()
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
-	hpen= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
+	hPen= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
 	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
 	COORD size={150,43};
 	SetConsoleCursorPosition(hOut,size);
@@ -123,7 +123,7 @@ void Game::startup()
 	
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
-	obstacle=new Obstacle[100];
+	obstacle=new Obstacle[5];
 	
 //	monster.print_now(600,600,4,monster.pos);
 }
@@ -146,7 +146,7 @@ void Game::updateWithoutInput()
 {
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-/*	num_monster_fresh++;
+	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
@@ -159,15 +159,23 @@ void Game::updateWithoutInput()
 		{
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
-	
+	for(int i=0; i<5; i++)
+	{	
+		obstacle[i].count++;
+		obstacle[i].print_now(square.angle);
+		if(obstacle[i].count>10)
+		{	obstacle[i].judge_show=!obstacle[i].judge_show;
+			obstacle[i].count=0;
+		}
+	}
 	update_bullet();
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
 	judge_coll_chara_to_wall();
-	judge_coll_mon_to_wall();*/
+	judge_coll_mon_to_wall();
+	judge_coll_mon_to_obstacle();
 	//print_new();
-	for(int i=0; i<100; i++)
-		obstacle[i].print_now(square.angle);
+	
 }
 void Game::update_bullet()
 {
@@ -190,18 +198,19 @@ void Game::update_bullet()
 				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
 				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
 				for(int i=0; i<400; i++)
-					if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
-					{	
-						bul->exist=false;
-						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-						monster[i].num_edge--;
-						if(monster[i].num_edge<3)
+					if(monster[i].exist==true)
+						if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
 						{	
-							monster[i].exist=false;
+							bul->exist=false;
+							monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+							monster[i].num_edge--;
+							if(monster[i].num_edge<3)
+							{	
+								monster[i].exist=false;
+							}
+							if(monster[i].exist!=false)
+								monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 						}
-						if(monster[i].exist!=false)
-							monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-					}
 			}
 			else
 			{
@@ -601,6 +610,34 @@ void Game::judge_coll_mon_to_corner(int i)
 	monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 	return;
 }
+void Game::judge_coll_mon_to_obstacle()
+{
+	Vector shadow; double num_move;
+	for(int i=0; i<400; i++)
+		if(monster[i].exist==true)
+			for(int j=0; j<5; j++)
+			{
+				
+				if(obstacle[j].judge_show==false) continue;
+				POINT tem[]={
+					obstacle[j].pos_x-Obstacle::r,obstacle[j].pos_y-Obstacle::r,
+					obstacle[j].pos_x-Obstacle::r,obstacle[j].pos_y+Obstacle::r,
+					obstacle[j].pos_x+Obstacle::r,obstacle[j].pos_y+Obstacle::r,
+					obstacle[j].pos_x+Obstacle::r,obstacle[j].pos_y-Obstacle::r
+				};
+				if(judge_coll_single(monster[i].pos,monster[i].num_edge, tem ,4,shadow,num_move)==true)
+				{	
+					monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					monster[i].num_edge--;
+					if(monster[i].num_edge<3)
+					{	
+						monster[i].exist=false;
+					}
+					if(monster[i].exist!=false)
+						monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				}
+			}
+}
 
 Charactor::Charactor()
 {
@@ -985,6 +1022,7 @@ void Obstacle::print_now(double angle)
 }
 void Obstacle::new_point()
 {
+	if(judge_show==false) return;
 	int tot=0;
 	for(int i=0 ;i<3; i++)
 	{
@@ -993,7 +1031,7 @@ void Obstacle::new_point()
 		for(int i=0; i<7; i++)
 		{stab[i].x=tem_stab[i].x;stab[i].y=tem_stab[i].y;}
 		tot+=13;
-		SelectObject(hdc,hpen);
+		SelectObject(hdc,hPen);
 		Polyline(hdc,stab,7);
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
@@ -1007,6 +1045,7 @@ void Obstacle::new_center(double angle)
 Obstacle::Obstacle(double x, double y)
 	:pos_x(x),pos_y(y)
 {
+	count=rand()%5;
 	new_point();
 	Vector a(900-pos_x,495-pos_y);
 	init=acosf( (a.x-1) / a.get_lenth());
@@ -1014,6 +1053,7 @@ Obstacle::Obstacle(double x, double y)
 Obstacle::Obstacle()
 {
 	judge_show=true;
+	count=rand()%5;
 	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
 	pos_x=rand1*rand()%300+900;   // 900 495
 	pos_y=rand2*rand()%300+495;
