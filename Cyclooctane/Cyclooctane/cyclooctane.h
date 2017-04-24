@@ -187,5 +187,6 @@ public:
 	void judge_coll_cha_to_mon();
 	void judge_coll_mon_to_mon();
 	void judge_coll_corner(double &pos_x, double& pos_y, POINT second[], int num_second, double center_x, double center_y);
-	
+	void judge_coll_cha_to_corner();
+	void judge_coll_mon_to_corner(int i);
 };

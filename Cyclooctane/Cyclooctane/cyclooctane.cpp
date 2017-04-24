@@ -97,7 +97,7 @@ void Game::updateWithoutInput()
 		{
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
-	judge_coll_corner(ben.pos_x, ben.pos_y, square.corner,4,square.pos_x,square.pos_y);
+	
 	update_bullet();
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
@@ -117,6 +117,8 @@ void Game::update_bullet()
 				bul->exist=false;
 			if(bul->exist==true)
 			{
+				if( ( (bul->pos_x-square.pos_x)*(bul->pos_x-square.pos_x)  )+( (bul->pos_y-square.pos_y)*(bul->pos_y-square.pos_y) )>=350*350*2  )
+					bul->exist=false;
 				bul->print_bul_old(bul->pos_x,bul->pos_y);
 				bul->pos_x+=bul->speed*cosf(bul->xita);
 				bul->pos_y-=bul->speed*sinf(bul->xita);
@@ -459,8 +461,13 @@ void Game::judge_coll_mon_to_wall()
 				monster[i].pos_y-=shadow.y*num_move;
 				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 			}
+			judge_coll_mon_to_corner(i);
+			if( ( (monster[i].pos_x-square.pos_x)*(monster[i].pos_x-square.pos_x)  )+( (monster[i].pos_y-square.pos_y)*(monster[i].pos_y-square.pos_y) )>=350*350*2  )
+			{	
+				monster[i].exist=false;
+				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			}
 		}
-	
 	return ;
 }
 void Game::judge_coll_cha_to_mon()
@@ -506,19 +513,30 @@ void Game::judge_coll_corner(double& pos_x,double& pos_y, POINT second[], int nu
 	for(int i=0; i<num_second; i++)
 	{
 		double tem=sqrt( (pos_x-second[i].x)*(pos_x-second[i].x) + (pos_y-second[i].y)*(pos_y-second[i].y) );
-		if( tem<50  )
+		if( tem<40  )
 		{
-			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 			Vector a(center_x-second[i].x,center_y-second[i].y);
 			double xita=acosf( (a.x-hori.x) / a.get_lenth());
 			pos_x+=tem*(cosf(xita));
 			pos_y-=tem*(sinf(xita));
-			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		}
 	}
 	return;
 }
-
+void Game::judge_coll_cha_to_corner()
+{
+	ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
+	judge_coll_corner(ben.pos_x, ben.pos_y, square.corner,4,square.pos_x,square.pos_y);
+	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+	return;
+}
+void Game::judge_coll_mon_to_corner(int i)
+{
+	monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+	judge_coll_corner(monster[i].pos_x,monster[i].pos_y, square.corner, 4, square.pos_x, square.pos_y);
+	monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+	return;
+}
 
 Charactor::Charactor()
 {
@@ -751,8 +769,8 @@ void Square::judge_input(double speed,bool judge_round)
 	if((GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{
 		paint_room_old(pos_x,pos_y,pos,angle);
-		if(GetAsyncKeyState(VK_LEFT)<0) angle+=speed;
-		if(GetAsyncKeyState(VK_RIGHT)<0) angle-=speed;
+		if(GetAsyncKeyState(VK_LEFT)<0) angle+=speed/3.0;
+		if(GetAsyncKeyState(VK_RIGHT)<0) angle-=speed/3.0;
 		paint_room_new(pos_x,pos_y,pos,angle);
 	}
 	return;
@@ -781,7 +799,6 @@ void Bullet::print_bul_old(double pos_x, double pos_y)
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
 }
-
 
 
 Vector::Vector(double x1, double y1)
