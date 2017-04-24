@@ -153,6 +153,7 @@ public:
 	POINT pos[10];
 	POINT edge1[5],edge2[5],edge3[5],edge4[5];
 	POINT teleport[4][2];
+	POINT corner[4];
 	Square();
 	~Square();
 	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[]); //更新坐标数组
@@ -160,7 +161,7 @@ public:
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle); //抹去旧房间
 	virtual void judge_input(double speed,bool judge_round);   // 根据输入更新角度
 
-	void tester();
+//	void tester();
 };
 
 struct Game
@@ -185,6 +186,6 @@ public:
 	void judge_coll_mon_to_wall();
 	void judge_coll_cha_to_mon();
 	void judge_coll_mon_to_mon();
-
+	void judge_coll_corner(double &pos_x, double& pos_y, POINT second[], int num_second, double center_x, double center_y);
 	
 };

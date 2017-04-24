@@ -97,7 +97,7 @@ void Game::updateWithoutInput()
 		{
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
-
+	judge_coll_corner(ben.pos_x, ben.pos_y, square.corner,4,square.pos_x,square.pos_y);
 	update_bullet();
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
@@ -172,6 +172,7 @@ void Game::updateWithInput()
 			ben.pos_x=old_x-ben.speed;
 		if(GetAsyncKeyState('D')<0) 
 			ben.pos_x=old_x+ben.speed; 
+		
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
 	}
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
@@ -349,8 +350,8 @@ bool Game::judge_coll_chara_to_wall()
 	if(judge_coll_single(ben.print_chara,7,square.edge1,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-		ben.pos_x-=shadow.x*num_move;
-		ben.pos_y-=shadow.y*num_move;
+		ben.pos_x-=shadow.x*(num_move+5);
+		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
@@ -358,8 +359,8 @@ bool Game::judge_coll_chara_to_wall()
 	if(judge_coll_single(ben.print_chara,7,square.edge2,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-		ben.pos_x-=shadow.x*num_move;
-		ben.pos_y-=shadow.y*num_move;
+		ben.pos_x-=shadow.x*(num_move+5);
+		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
@@ -367,8 +368,8 @@ bool Game::judge_coll_chara_to_wall()
 	if(judge_coll_single(ben.print_chara,7,square.edge3,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-		ben.pos_x-=shadow.x*num_move;
-		ben.pos_y-=shadow.y*num_move;
+		ben.pos_x-=shadow.x*(num_move+5);
+		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
@@ -376,8 +377,8 @@ bool Game::judge_coll_chara_to_wall()
 	if(judge_coll_single(ben.print_chara,7,square.edge4,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-		ben.pos_x-=shadow.x*num_move;
-		ben.pos_y-=shadow.y*num_move;
+		ben.pos_x-=shadow.x*(num_move+5);
+		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 		return true;
 	}
@@ -499,6 +500,24 @@ void Game::judge_coll_mon_to_mon()
 				}
 	return ;
 }
+void Game::judge_coll_corner(double& pos_x,double& pos_y, POINT second[], int num_second ,double center_x,double center_y)
+{
+	Vector hori(1,0);
+	for(int i=0; i<num_second; i++)
+	{
+		double tem=sqrt( (pos_x-second[i].x)*(pos_x-second[i].x) + (pos_y-second[i].y)*(pos_y-second[i].y) );
+		if( tem<50  )
+		{
+			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
+			Vector a(center_x-second[i].x,center_y-second[i].y);
+			double xita=acosf( (a.x-hori.x) / a.get_lenth());
+			pos_x+=tem*(cosf(xita));
+			pos_y-=tem*(sinf(xita));
+			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		}
+	}
+	return;
+}
 
 
 Charactor::Charactor()
@@ -615,7 +634,7 @@ void Charactor::judge_input()
 }
 
 
-void Square::tester()
+/*void Square::tester()
 {
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2); double tot=0.0822469;
 	POINT  tedge1[]=
@@ -629,7 +648,7 @@ void Square::tester()
 	::SetDCPenColor(hdc, RGB(0,0,255));
 	::SetDCBrushColor(hdc,RGB(0,0,255));
 	Polygon(hdc,tedge1 ,5);
-}  
+}  */
 void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos[])
 {
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
@@ -647,6 +666,13 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),		//右下近
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle),		//右上近
 		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),  	//左上近
+	};
+	POINT tem_corner[]=
+	{
+		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),	
+		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),	
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),	
+		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)
 	};
 	POINT  tedge1[]=
 	{
@@ -681,30 +707,17 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)
 	};
 	for(int i=0; i<10 ; i++)
-	{
-		pos[i].x=squ1[i].x;
-		pos[i].y=squ1[i].y;
-	}
+	{pos[i].x=squ1[i].x;pos[i].y=squ1[i].y;}
 	for(int i=0; i<5; i++)
-	{
-		edge1[i].x=tedge1[i].x;
-		edge1[i].y=tedge1[i].y;
-	}
+	{edge1[i].x=tedge1[i].x;edge1[i].y=tedge1[i].y;}
 	for(int i=0; i<5; i++)
-	{
-		edge2[i].x=tedge2[i].x;
-		edge2[i].y=tedge2[i].y;
-	}
+	{edge2[i].x=tedge2[i].x;edge2[i].y=tedge2[i].y;}
 	for(int i=0; i<5; i++)
-	{
-		edge3[i].x=tedge3[i].x;
-		edge3[i].y=tedge3[i].y;
-	}
+	{edge3[i].x=tedge3[i].x;edge3[i].y=tedge3[i].y;}
 	for(int i=0; i<5; i++)
-	{
-		edge4[i].x=tedge4[i].x;
-		edge4[i].y=tedge4[i].y;
-	}
+	{edge4[i].x=tedge4[i].x;edge4[i].y=tedge4[i].y;}
+	for(int i=0; i<4; i++)
+	{corner[i].x=tem_corner[i].x; corner[i].y=tem_corner[i].y;}
 	return;
 }
 void Square::paint_room_new(double squ_x, double squ_y, POINT squ[], double angle)
