@@ -16,6 +16,7 @@ HWND hwnd;
 HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
+HPEN hpen; 
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
 const double MAX_DOUBLE=1.79769e+308;
@@ -26,6 +27,7 @@ int Bullet::num_time_count=0;
 int Monster::num_total=0;
 int num_monster_fresh=0;
 int num_fresh_count=0;
+const double Obstacle::r=20.0;
 
 void gotoxy(int x,int y)
 {
@@ -43,6 +45,63 @@ void hidden()
 	SetConsoleCursorInfo(hOut,&cci);
 }
 
+Vector::Vector(double x1, double y1)
+{
+	x=x1;  y=y1;
+}
+Vector::Vector(const Vector& a)
+{
+	x=a.x;   y=a.y;
+}
+Vector::Vector() 
+{
+	x=0;  y=0;
+}
+Vector Vector::vertical()  //把向量变成其垂直向量
+{
+	double tem=x; x=y; y=-tem;
+	return *this;
+} 
+double Vector::get_lenth()
+{
+	return sqrt(x*x+y*y);
+}
+Vector Vector::new_normalize()
+{
+	double a=get_lenth();
+	x/=a; y/=a;
+	return *this;
+}
+double Vector::dotmulti(Vector a)
+{
+	return a.x*x+a.y*y;
+}
+Vector Vector::operator = (Vector a)
+{
+	x=a.x; y=a.y;
+	return *this;
+}
+Vector Vector::operator - (Vector a)
+{
+	temp_vector.x=x-a.x; temp_vector.y=y-a.y;
+	return temp_vector;
+}
+Vector Vector::operator + (Vector a)
+{
+	temp_vector.x=x+a.x; temp_vector.y=y+a.y;
+	return temp_vector;
+}
+Vector Vector::operator * (double a)
+{
+	temp_vector.x=x*a; temp_vector.y=y*a;
+	return temp_vector;
+}
+Vector Vector::operator / (double a)
+{
+	temp_vector.x=x/a; temp_vector.y=y/a;
+	return temp_vector;
+}
+
 
 void Game::startup()
 {
@@ -51,19 +110,20 @@ void Game::startup()
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
+	hpen= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
 	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
 	COORD size={150,43};
 	SetConsoleCursorPosition(hOut,size);
 	SetConsoleScreenBufferSize(hOut,size);
 	SMALL_RECT rc = {0,0, 150-1, 43-1};
+	
 	SetConsoleWindowInfo(hOut,true ,&rc);
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-
-
+	
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
-	
+	obstacle=new Obstacle[100];
 	
 //	monster.print_now(600,600,4,monster.pos);
 }
@@ -84,7 +144,9 @@ void Game::print_new()
 }
 void Game::updateWithoutInput()
 {
-	num_monster_fresh++;
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+/*	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
@@ -102,8 +164,10 @@ void Game::updateWithoutInput()
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
 	judge_coll_chara_to_wall();
-	judge_coll_mon_to_wall();
+	judge_coll_mon_to_wall();*/
 	//print_new();
+	for(int i=0; i<100; i++)
+		obstacle[i].print_now(square.angle);
 }
 void Game::update_bullet()
 {
@@ -801,64 +865,6 @@ void Bullet::print_bul_old(double pos_x, double pos_y)
 }
 
 
-Vector::Vector(double x1, double y1)
-{
-	x=x1;  y=y1;
-}
-Vector::Vector(const Vector& a)
-{
-	x=a.x;   y=a.y;
-}
-Vector::Vector() 
-{
-	x=0;  y=0;
-}
-Vector Vector::vertical()  //把向量变成其垂直向量
-{
-	double tem=x; x=y; y=-tem;
-	return *this;
-} 
-double Vector::get_lenth()
-{
-	return sqrt(x*x+y*y);
-}
-Vector Vector::new_normalize()
-{
-	double a=get_lenth();
-	x/=a; y/=a;
-	return *this;
-}
-double Vector::dotmulti(Vector a)
-{
-	return a.x*x+a.y*y;
-}
-Vector Vector::operator = (Vector a)
-{
-	x=a.x; y=a.y;
-	return *this;
-}
-Vector Vector::operator - (Vector a)
-{
-	temp_vector.x=x-a.x; temp_vector.y=y-a.y;
-	return temp_vector;
-}
-Vector Vector::operator + (Vector a)
-{
-	temp_vector.x=x+a.x; temp_vector.y=y+a.y;
-	return temp_vector;
-}
-Vector Vector::operator * (double a)
-{
-	temp_vector.x=x*a; temp_vector.y=y*a;
-	return temp_vector;
-}
-Vector Vector::operator / (double a)
-{
-	temp_vector.x=x/a; temp_vector.y=y/a;
-	return temp_vector;
-}
-
-
 Monster::Monster(int num)
 {
 //	create_new_monster();
@@ -960,4 +966,71 @@ void Monster::create_new_monster()
 	speed=10;
 	num_edge=rand()%4+3;
 	new_point(pos_x,pos_y,num_edge,pos);
+}
+
+void Obstacle::print_old()
+{
+	::SetDCPenColor(hdc, RGB(0,0,0));  
+	::SetDCBrushColor(hdc,RGB(0,0,0)); 
+	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
+}
+void Obstacle::print_now(double angle)
+{
+	print_old();
+	new_center(angle);
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
+	new_point();
+}
+void Obstacle::new_point()
+{
+	int tot=0;
+	for(int i=0 ;i<3; i++)
+	{
+		POINT tem_stab[]=
+		{pos_x-r+5,pos_y-r+tot+10,pos_x-r+10,pos_y-r+tot+5,pos_x-r+15,pos_y-r+tot+10,pos_x-r+20,pos_y-r+tot+5,pos_x-r+25,pos_y-r+tot+10,pos_x-r+30,pos_y-r+tot+5,pos_x-r+35,pos_y-r+tot+10};
+		for(int i=0; i<7; i++)
+		{stab[i].x=tem_stab[i].x;stab[i].y=tem_stab[i].y;}
+		tot+=13;
+		SelectObject(hdc,hpen);
+		Polyline(hdc,stab,7);
+		::SelectObject(hdc,GetStockObject(DC_PEN));
+		::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	}
+}
+void Obstacle::new_center(double angle)
+{
+	pos_x=900+dis*(cosf(angle+init));
+	pos_y=495-dis*(sinf(angle+init));
+}
+Obstacle::Obstacle(double x, double y)
+	:pos_x(x),pos_y(y)
+{
+	new_point();
+	Vector a(900-pos_x,495-pos_y);
+	init=acosf( (a.x-1) / a.get_lenth());
+}
+Obstacle::Obstacle()
+{
+	judge_show=true;
+	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
+	pos_x=rand1*rand()%300+900;   // 900 495
+	pos_y=rand2*rand()%300+495;
+	new_point();
+	Vector a(pos_x-900,495-pos_y);
+	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
+	if(abs(tem)<1e-6)  init=0;
+	else
+	{
+		init=asinf((495-pos_y)/tem);
+		if((pos_x-900)>1e-6)
+		{
+			if((495-pos_y)>1e-6) init=init;
+			else init=init+pi2;
+		}
+		else
+			init=pi-init;
+	}
+	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
 }

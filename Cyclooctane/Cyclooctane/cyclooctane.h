@@ -120,8 +120,16 @@ struct Obstacle // ’œ∞≠
 	double pos_x,pos_y;
 	double speed;
 	bool judge_show;
+	double init,dis;
+	POINT stab[7];
 public:
-	void print_now();
+	Obstacle();
+	Obstacle(double x, double y);
+	static const double r;
+	void print_now(double angle);
+	void print_old();
+	void new_point();
+	void new_center(double angle);
 };
 
 struct Room  // ∑øº‰
@@ -169,6 +177,7 @@ struct Game
 	Charactor ben;
 	Level *level;
 	Prop *prop;
+	Obstacle *obstacle;
 //	Room *room;
 	Square square;
 	Monster monster[500];
