@@ -234,6 +234,8 @@ void Game::update_bullet()
 }
 void Game::updateWithInput()
 {
+	if( GetAsyncKeyState(VK_ESCAPE)<0 )
+		exit(1);
 	ben.judge_input();
 	if((GetAsyncKeyState('W')<0)||(GetAsyncKeyState('S')<0)|| (GetAsyncKeyState('A')<0) ||(GetAsyncKeyState('D')<0))
 	{
