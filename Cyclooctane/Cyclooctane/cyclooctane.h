@@ -67,6 +67,7 @@ struct Charactor //角色
 	int num_bul;
 	double speed;
 	POINT print_chara[14];
+	int mod;
 public:
 	Charactor();
 	~Charactor();
@@ -187,6 +188,7 @@ public:
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
+	void clear();
 	void judge_bullet(int start, int end, POINT pos[], double &x, double &y, double &xita);
 	void update_bullet();
 	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
@@ -200,4 +202,8 @@ public:
 	void judge_coll_cha_to_corner();
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
+	void menu_start();
+	void menu_exit();
+	void menu_cha();
+	
 };

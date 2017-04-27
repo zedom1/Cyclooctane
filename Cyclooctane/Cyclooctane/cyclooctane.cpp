@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <time.h>
+#include <tchar.h>
 #include "cyclooctane.h"
 using namespace std;
 #pragma warning(disable:4244)
@@ -16,7 +17,8 @@ HWND hwnd;
 HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
-HPEN hPen; 
+HPEN hPen,pen_black; 
+HFONT hFont,hFont_title;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
 const double MAX_DOUBLE=1.79769e+308;
@@ -28,6 +30,7 @@ int Monster::num_total=0;
 int num_monster_fresh=0;
 int num_fresh_count=0;
 const double Obstacle::r=20.0;
+
 
 void gotoxy(int x,int y)
 {
@@ -110,22 +113,35 @@ void Game::startup()
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
-	hPen= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
+	hPen= CreatePen( PS_SOLID , 3 , RGB( 255 , 0 , 0 ));
+	pen_black= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
 	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
 	COORD size={150,43};
 	SetConsoleCursorPosition(hOut,size);
 	SetConsoleScreenBufferSize(hOut,size);
 	SMALL_RECT rc = {0,0, 150-1, 43-1};
-	
 	SetConsoleWindowInfo(hOut,true ,&rc);
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	
-	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 	obstacle=new Obstacle[5];
-	
-//	monster.print_now(600,600,4,monster.pos);
+	hFont=CreateFont(80,40,0,0,FW_NORMAL,false,false,false,
+		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
+		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
+		FF_DECORATIVE, _T("方正姚体"));
+	hFont_title=CreateFont(160,60,0,0,FW_NORMAL,false,false,false,
+		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
+		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
+		FF_DECORATIVE, _T("微软雅黑"));
+	menu_cha();
+	menu_start();
+}
+void Game::clear()
+{
+	SelectObject(hdc,pen_black);
+	::SetDCPenColor(hdc, RGB(0,0,0));   
+	::SetDCBrushColor(hdc,RGB(0,0,0)); 
+	Rectangle(hdc,0,0,1500,990);
+	return;
 }
 void Game::show()
 {
@@ -136,6 +152,8 @@ void Game::show()
 }
 void Game::print_new()
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
 	Rectangle(hdc,0,0,1500,990);
@@ -235,7 +253,7 @@ void Game::update_bullet()
 void Game::updateWithInput()
 {
 	if( GetAsyncKeyState(VK_ESCAPE)<0 )
-		exit(1);
+		menu_exit();
 	ben.judge_input();
 	if((GetAsyncKeyState('W')<0)||(GetAsyncKeyState('S')<0)|| (GetAsyncKeyState('A')<0) ||(GetAsyncKeyState('D')<0))
 	{
@@ -640,6 +658,167 @@ void Game::judge_coll_mon_to_obstacle()
 				}
 			}
 }
+void Game::menu_start()
+{
+	SelectObject(hdc,hFont);
+	SelectObject(hdc,hPen);
+	LPCTSTR str_start=L"START";
+	LPCTSTR str_exit=L"EXIT";
+	LPCTSTR str_load=L"LOAD";
+	LPCTSTR str_title=L"Cyclooctane";
+	int gamestatus=1;
+	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
+	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+	SelectObject(hdc,hPen);
+	POINT sqr_now[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 };
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,380,300,str_title,11);
+		TextOut(hdc,380,300,str_title,11);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,650,600,str_start,5);
+		TextOut(hdc,655,700,str_load,4);
+		TextOut(hdc,680,800,str_exit,4);
+		TextOut(hdc,680,800,str_exit,4);
+		Polyline(hdc,sqr_now, 5);
+		char aaa=getch();
+		if(aaa=='\r') break;
+		if(aaa=='w'||aaa=='s')
+		{
+			if(aaa=='w')
+				gamestatus=gamestatus>1?gamestatus-1:3;
+			if(aaa=='s')
+				gamestatus=gamestatus<3?gamestatus+1:1;
+			clear();
+		}
+		SelectObject(hdc,hPen);
+		if(gamestatus==1)
+		{POINT sqr_a[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else if(gamestatus==2)
+		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		Polyline(hdc,sqr_now, 5);
+	}
+	if(gamestatus==3) 
+	{
+		clear();
+		exit(1);
+	}
+	if(gamestatus==2) // load
+	{
+
+	}
+	clear();
+}
+void Game::menu_exit()
+{
+	clear();
+	int gamestatus=1;
+	POINT sqr_now[]={ 600,594, 880,594,  880,683,  600,683 ,  600,594 };
+	LPCTSTR str_continue=L"CONTINUE";
+	LPCTSTR str_save=L"SAVE";
+	LPCTSTR str_exit=L"EXIT";
+	LPCTSTR str_pause=L"PAUSE";
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,550,300,str_pause,5);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,580,600,str_continue,8);
+		TextOut(hdc,665,700,str_save,4);
+		TextOut(hdc,680,800,str_exit,4);
+		TextOut(hdc,680,800,str_exit,4);
+		char aaa=getch();
+		if(aaa=='\r') break;
+		if(aaa=='w'||aaa=='s')
+		{
+			if(aaa=='w')
+				gamestatus=gamestatus>1?gamestatus-1:3;
+			if(aaa=='s')
+				gamestatus=gamestatus<3?gamestatus+1:1;
+			clear();
+		}
+		SelectObject(hdc,hPen);
+		if(gamestatus==1)
+		{POINT sqr_a[]={ 575,594, 900,594,  900,683,  575,683 ,  575,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else if(gamestatus==2)
+		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		Polyline(hdc,sqr_now, 5);
+	}
+	if(gamestatus==3) 
+	{
+		clear();
+		menu_start();
+	}
+	if(gamestatus==2) // save
+	{
+
+	}
+	clear();
+	return;
+}
+void Game::menu_cha()
+{
+	SelectObject(hdc,hFont);
+	SelectObject(hdc,hPen);
+	LPCTSTR str_ben=L"Benzene";
+	LPCTSTR str_cyc=L"Cyclohexene";
+	LPCTSTR str_load=L"LOAD";
+	LPCTSTR str_title=L"Charactor";
+	int gamestatus=1;
+	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
+	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+	SelectObject(hdc,hPen);
+	POINT sqr_now[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 };
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,380,300,str_title,9);
+		TextOut(hdc,380,300,str_title,9);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,650,600,str_ben,7);
+		TextOut(hdc,655,700,str_cyc,11);
+		TextOut(hdc,680,800,str_load,4);
+		TextOut(hdc,680,800,str_load,4);
+		Polyline(hdc,sqr_now, 5);
+		char aaa=getch();
+		if(aaa=='\r') break;
+		if(aaa=='w'||aaa=='s')
+		{
+			if(aaa=='w')
+				gamestatus=gamestatus>1?gamestatus-1:3;
+			if(aaa=='s')
+				gamestatus=gamestatus<3?gamestatus+1:1;
+			clear();
+		}
+		SelectObject(hdc,hPen);
+		if(gamestatus==1)
+		{POINT sqr_a[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else if(gamestatus==2)
+		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		Polyline(hdc,sqr_now, 5);
+	}
+	if(gamestatus==3) 
+	{
+		clear();
+		exit(1);
+	}
+	if(gamestatus==2) // load
+	{
+
+	}
+	clear();
+}
+
 
 Charactor::Charactor()
 {
@@ -843,6 +1022,8 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 }
 void Square::paint_room_new(double squ_x, double squ_y, POINT squ[], double angle)
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(255,255,255));
 	::SetDCBrushColor(hdc,RGB(255,255,255));
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
@@ -851,6 +1032,8 @@ void Square::paint_room_new(double squ_x, double squ_y, POINT squ[], double angl
 }
 void Square::paint_room_old(double squ_x, double squ_y, POINT squ[],double angle)
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
@@ -880,7 +1063,6 @@ void Square::judge_input(double speed,bool judge_round)
 }
 
 
-
 Bullet::Bullet(double x,double y,double xi)
 {
 	pos_x=x; pos_y=y;
@@ -892,12 +1074,16 @@ Bullet::Bullet(double x,double y,double xi)
 }
 void Bullet::print_bul_new(double pos_x, double pos_y)
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(100,210,140));
 	::SetDCBrushColor(hdc,RGB(100,210,140));
 	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
 }
 void Bullet::print_bul_old(double pos_x, double pos_y)
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
@@ -964,6 +1150,8 @@ void Monster::new_point(int x, int y, int num_edge, POINT pos[])
 }
 void Monster::print_now(int x, int y, int num, POINT pos[])
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	new_point(x,y,num,pos);
 	if(num_edge==3)
 	{
@@ -989,6 +1177,8 @@ void Monster::print_now(int x, int y, int num, POINT pos[])
 }
 void Monster::print_old(int x, int y, int num, POINT pos[])
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	new_point(x,y,num,pos);
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
@@ -1007,14 +1197,19 @@ void Monster::create_new_monster()
 	new_point(pos_x,pos_y,num_edge,pos);
 }
 
+
 void Obstacle::print_old()
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
 	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
 }
 void Obstacle::print_now(double angle)
 {
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	print_old();
 	new_center(angle);
 	::SetDCPenColor(hdc, RGB(255,0,0));  
@@ -1033,11 +1228,13 @@ void Obstacle::new_point()
 		for(int i=0; i<7; i++)
 		{stab[i].x=tem_stab[i].x;stab[i].y=tem_stab[i].y;}
 		tot+=13;
-		SelectObject(hdc,hPen);
+		SelectObject(hdc,pen_black);
 		Polyline(hdc,stab,7);
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	}
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 }
 void Obstacle::new_center(double angle)
 {
