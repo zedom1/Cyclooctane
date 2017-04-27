@@ -132,7 +132,6 @@ void Game::startup()
 		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
 		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
 		FF_DECORATIVE, _T("Î¢ÈíÑÅºÚ"));
-	menu_cha();
 	menu_start();
 }
 void Game::clear()
@@ -662,9 +661,9 @@ void Game::menu_start()
 {
 	SelectObject(hdc,hFont);
 	SelectObject(hdc,hPen);
-	LPCTSTR str_start=L"START";
-	LPCTSTR str_exit=L"EXIT";
-	LPCTSTR str_load=L"LOAD";
+	LPCTSTR str_start=L"Start";
+	LPCTSTR str_exit=L"Exit";
+	LPCTSTR str_load=L"Load";
 	LPCTSTR str_title=L"Cyclooctane";
 	int gamestatus=1;
 	::SetDCPenColor(hdc, RGB(123,123,123));  //»ÒÉ«
@@ -702,26 +701,25 @@ void Game::menu_start()
 		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
 		Polyline(hdc,sqr_now, 5);
 	}
+	clear();
 	if(gamestatus==3) 
-	{
-		clear();
 		exit(1);
-	}
 	if(gamestatus==2) // load
 	{
-
 	}
-	clear();
+	if(gamestatus==1)
+		menu_cha();
+	return;
 }
 void Game::menu_exit()
 {
 	clear();
 	int gamestatus=1;
 	POINT sqr_now[]={ 600,594, 880,594,  880,683,  600,683 ,  600,594 };
-	LPCTSTR str_continue=L"CONTINUE";
-	LPCTSTR str_save=L"SAVE";
-	LPCTSTR str_exit=L"EXIT";
-	LPCTSTR str_pause=L"PAUSE";
+	LPCTSTR str_continue=L"Continue";
+	LPCTSTR str_save=L"Save";
+	LPCTSTR str_exit=L"Exit";
+	LPCTSTR str_pause=L"Pause";
 	while(1)	
 	{
 		SetBkColor(hdc, RGB(0,0,0));
@@ -766,56 +764,59 @@ void Game::menu_exit()
 void Game::menu_cha()
 {
 	SelectObject(hdc,hFont);
-	SelectObject(hdc,hPen);
 	LPCTSTR str_ben=L"Benzene";
-	LPCTSTR str_cyc=L"Cyclohexene";
-	LPCTSTR str_load=L"LOAD";
+	LPCTSTR str_cyc=L"Cyclohexadiene";
+	LPCTSTR str_load=L"Load";
 	LPCTSTR str_title=L"Charactor";
 	int gamestatus=1;
-	::SetDCPenColor(hdc, RGB(123,123,123));  //»ÒÉ«
-	::SetDCBrushColor(hdc,RGB(123,123,123)); //»ÒÉ«
-	SelectObject(hdc,hPen);
-	POINT sqr_now[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 };
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,310,790,325,800);
 	while(1)	
 	{
 		SetBkColor(hdc, RGB(0,0,0));
 		SetTextColor(hdc,RGB(255,255,255));
 		SelectObject(hdc,hFont_title);
-		TextOut(hdc,380,300,str_title,9);
-		TextOut(hdc,380,300,str_title,9);
+		TextOut(hdc,420,150,str_title,9);
+		TextOut(hdc,420,150,str_title,9);
 		SelectObject(hdc,hFont);
-		TextOut(hdc,650,600,str_ben,7);
-		TextOut(hdc,655,700,str_cyc,11);
-		TextOut(hdc,680,800,str_load,4);
-		TextOut(hdc,680,800,str_load,4);
-		Polyline(hdc,sqr_now, 5);
-		char aaa=getch();
-		if(aaa=='\r') break;
-		if(aaa=='w'||aaa=='s')
-		{
-			if(aaa=='w')
-				gamestatus=gamestatus>1?gamestatus-1:3;
-			if(aaa=='s')
-				gamestatus=gamestatus<3?gamestatus+1:1;
+		TextOut(hdc,200,700,str_ben,7);
+		TextOut(hdc,550,700,str_cyc,14);
+		TextOut(hdc,1100,700,str_load,4);
+		TextOut(hdc,1100,700,str_load,4);
+		::SetDCPenColor(hdc, RGB(255,0,0));  
+		::SetDCBrushColor(hdc,RGB(255,0,0)); 
+		if(GetAsyncKeyState(VK_ESCAPE)<0)
+		{	
 			clear();
+			menu_start();
 		}
-		SelectObject(hdc,hPen);
+		if(kbhit())
+		{
+			char aaa=getch();
+			if(aaa=='\r') break;
+			if(aaa=='a'||aaa=='d')
+			{
+				if(aaa=='a')
+					gamestatus=gamestatus>1?gamestatus-1:3;
+				if(aaa=='d')
+					gamestatus=gamestatus<3?gamestatus+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  
+				::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,310,790,325,800);
+				Ellipse(hdc,760,790,775,800);
+				Ellipse(hdc,1200,790,1215,800);
+			}
+		}
 		if(gamestatus==1)
-		{POINT sqr_a[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		{Ellipse(hdc,310,790,325,800);}
 		else if(gamestatus==2)
-		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		Polyline(hdc,sqr_now, 5);
+		{Ellipse(hdc,760,790,775,800);}
+		else {Ellipse(hdc,1200,790,1215,800);}
 	}
-	if(gamestatus==3) 
-	{
-		clear();
-		exit(1);
-	}
-	if(gamestatus==2) // load
-	{
-
-	}
+	ben.mod=gamestatus;
 	clear();
 }
 

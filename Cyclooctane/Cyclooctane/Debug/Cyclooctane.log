@@ -1,8 +1,10 @@
 ﻿  cyclooctane.cpp
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(687): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(686): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
           c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(131) : 参见“getch”的声明
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(736): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(734): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
           c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(131) : 参见“getch”的声明
-g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(792): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(796): warning C4996: 'kbhit': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _kbhit. See online help for details.
+          c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(133) : 参见“kbhit”的声明
+g:\大一下\c++\黑框框\cyclooctane\cyclooctane\cyclooctane\cyclooctane.cpp(798): warning C4996: 'getch': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _getch. See online help for details.
           c:\program files (x86)\microsoft visual studio 11.0\vc\include\conio.h(131) : 参见“getch”的声明
   Cyclooctane.vcxproj -> G:\大一下\C++\黑框框\Cyclooctane\Cyclooctane\Debug\Cyclooctane.exe
