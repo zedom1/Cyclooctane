@@ -669,19 +669,19 @@ void Game::menu_start()
 	::SetDCPenColor(hdc, RGB(123,123,123));  //»ÒÉ«
 	::SetDCBrushColor(hdc,RGB(123,123,123)); //»ÒÉ«
 	SelectObject(hdc,hPen);
-	POINT sqr_now[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 };
+	POINT sqr_now[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 };
 	while(1)	
 	{
 		SetBkColor(hdc, RGB(0,0,0));
 		SetTextColor(hdc,RGB(255,255,255));
 		SelectObject(hdc,hFont_title);
-		TextOut(hdc,380,300,str_title,11);
-		TextOut(hdc,380,300,str_title,11);
+		TextOut(hdc,380,200,str_title,11);
+		TextOut(hdc,380,200,str_title,11);
 		SelectObject(hdc,hFont);
-		TextOut(hdc,650,600,str_start,5);
-		TextOut(hdc,655,700,str_load,4);
-		TextOut(hdc,680,800,str_exit,4);
-		TextOut(hdc,680,800,str_exit,4);
+		TextOut(hdc,665,500,str_start,5);
+		TextOut(hdc,665,600,str_load,4);
+		TextOut(hdc,680,700,str_exit,4);
+		TextOut(hdc,680,700,str_exit,4);
 		Polyline(hdc,sqr_now, 5);
 		char aaa=getch();
 		if(aaa=='\r') break;
@@ -695,10 +695,10 @@ void Game::menu_start()
 		}
 		SelectObject(hdc,hPen);
 		if(gamestatus==1)
-		{POINT sqr_a[]={ 644,594, 839,594,  839,683,  644,683 ,  644,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		{POINT sqr_a[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
 		else if(gamestatus==2)
-		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		{POINT sqr_a[]={ 655,600, 815,600, 815,683,  655,683 , 655,600 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else {POINT sqr_a[]={ 672,700, 790,700, 790,783, 672,783 , 672,700 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
 		Polyline(hdc,sqr_now, 5);
 	}
 	clear();
@@ -715,39 +715,51 @@ void Game::menu_exit()
 {
 	clear();
 	int gamestatus=1;
-	POINT sqr_now[]={ 600,594, 880,594,  880,683,  600,683 ,  600,594 };
 	LPCTSTR str_continue=L"Continue";
 	LPCTSTR str_save=L"Save";
 	LPCTSTR str_exit=L"Exit";
 	LPCTSTR str_pause=L"Pause";
+	SetBkColor(hdc, RGB(0,0,0));
+	SetTextColor(hdc,RGB(255,255,255));
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,575,535,585,545);
 	while(1)	
 	{
-		SetBkColor(hdc, RGB(0,0,0));
-		SetTextColor(hdc,RGB(255,255,255));
 		SelectObject(hdc,hFont_title);
-		TextOut(hdc,550,300,str_pause,5);
+		TextOut(hdc,550,200,str_pause,5);
 		SelectObject(hdc,hFont);
-		TextOut(hdc,580,600,str_continue,8);
-		TextOut(hdc,665,700,str_save,4);
-		TextOut(hdc,680,800,str_exit,4);
-		TextOut(hdc,680,800,str_exit,4);
-		char aaa=getch();
-		if(aaa=='\r') break;
-		if(aaa=='w'||aaa=='s')
+		TextOut(hdc,600,500,str_continue,8);
+		TextOut(hdc,665,600,str_save,4);
+		TextOut(hdc,680,700,str_exit,4);
+		TextOut(hdc,680,700,str_exit,4);
+		if(kbhit())
 		{
-			if(aaa=='w')
-				gamestatus=gamestatus>1?gamestatus-1:3;
-			if(aaa=='s')
-				gamestatus=gamestatus<3?gamestatus+1:1;
-			clear();
+			char aaa=getch();
+			if(aaa=='\r') break;
+			if(aaa=='s'||aaa=='w')
+			{
+				if(aaa=='w')
+					gamestatus=gamestatus>1?gamestatus-1:3;
+				if(aaa=='s')
+					gamestatus=gamestatus<3?gamestatus+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  
+				::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,575,535,585,545);
+				Ellipse(hdc,640,635,650,645);
+				Ellipse(hdc,655,735,665,745);
+			}
 		}
-		SelectObject(hdc,hPen);
+		::SetDCPenColor(hdc, RGB(255,0,0));  
+		::SetDCBrushColor(hdc,RGB(255,0,0)); 
 		if(gamestatus==1)
-		{POINT sqr_a[]={ 575,594, 900,594,  900,683,  575,683 ,  575,594 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		{Ellipse(hdc,575,535,585,545);}
 		else if(gamestatus==2)
-		{POINT sqr_a[]={ 649,694, 831,694, 831,783,  649,783 , 649,694 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		else {POINT sqr_a[]={ 672,794, 811,794, 811,883, 672,883 , 672,794 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		Polyline(hdc,sqr_now, 5);
+		{Ellipse(hdc,640,635,650,645);}
+		else {Ellipse(hdc,655,735,665,745);}
+		
 	}
 	if(gamestatus==3) 
 	{
