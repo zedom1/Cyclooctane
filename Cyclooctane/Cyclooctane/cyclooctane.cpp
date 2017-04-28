@@ -44,7 +44,7 @@ void hidden()
 {
 	CONSOLE_CURSOR_INFO cci;
 	GetConsoleCursorInfo(hOut,&cci);
-	cci.bVisible=0;//¸³1ÎªÏÔÊ¾£¬¸³0ÎªÒþ²Ø
+	cci.bVisible=0;
 	SetConsoleCursorInfo(hOut,&cci);
 }
 
@@ -163,6 +163,15 @@ void Game::updateWithoutInput()
 {
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	if(ben.judge_round==true)
+	{
+		ben.num_count[ben.mod]++;
+		if(ben.num_count[ben.mod]>200)
+		{
+			ben.num_count[ben.mod]=0;
+			ben.judge_round=false;
+		}
+	}
 	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
@@ -271,16 +280,22 @@ void Game::updateWithInput()
 	}
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	square.judge_input(ben.speed*3.0/100.0,ben.judge_round);
-	if(GetAsyncKeyState('Y')<0) 
+	if(kbhit()) 
 	{	
-		if(ben.judge_round==false)
-		{	
-			ben.judge_round=true;
-			ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-		}
-		else
-		{	ben.judge_round=false;
-			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		char order=getch();
+		if(order=='q')
+		{
+			if(ben.judge_round==false)
+			{	
+				ben.judge_round=true;
+				for(int i=0; i<Monster::num_total; i++)
+				{	
+					if(monster[i].exist=false) continue; 
+					monster[i].exist=false;
+					monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				}
+				ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+			}
 		}
 	}
 }
@@ -708,7 +723,9 @@ void Game::menu_start()
 	{
 	}
 	if(gamestatus==1)
+	{	
 		menu_cha();
+	}
 	return;
 }
 void Game::menu_exit()
@@ -798,6 +815,7 @@ void Game::menu_cha()
 		TextOut(hdc,550,700,str_cyc,14);
 		TextOut(hdc,1100,700,str_load,4);
 		TextOut(hdc,1100,700,str_load,4);
+		ben.print_cha_new(320,620,ben.print_chara);
 		::SetDCPenColor(hdc, RGB(255,0,0));  
 		::SetDCBrushColor(hdc,RGB(255,0,0)); 
 		if(GetAsyncKeyState(VK_ESCAPE)<0)
@@ -844,6 +862,7 @@ Charactor::Charactor()
 	judge_round=false;
 	head=new Bullet(pos_x,pos_y,0);
 	last=head;
+	memset(num_count,0,sizeof(num_count));
 	head->nex=NULL;
 }
 Charactor::~Charactor()

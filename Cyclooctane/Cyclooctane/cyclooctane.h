@@ -68,6 +68,7 @@ struct Charactor //½ÇÉ«
 	double speed;
 	POINT print_chara[14];
 	int mod;
+	int num_count[3];
 public:
 	Charactor();
 	~Charactor();
