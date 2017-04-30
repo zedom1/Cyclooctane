@@ -47,6 +47,81 @@ void hidden()
 	cci.bVisible=0;
 	SetConsoleCursorInfo(hOut,&cci);
 }
+int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
+{
+	double pos_x=900-360;  //pos_y=495-360;
+	int ans1=((x-pos_x)/(2*Obstacle::r) );
+	double ans=(ans1)*2*Obstacle::r+pos_x+Obstacle::r;
+	return ans;
+} 
+int normalize_y(double y)   //找到坐标所在方格的中心点y坐标
+{
+	double pos_y=495-360;
+	int ans1=((y-pos_y)/(2*Obstacle::r) );
+	double ans=(ans1)*2*Obstacle::r+pos_y+Obstacle::r;
+	return ans;
+}
+int get_i(double x)   //该中心对应map的i值
+{
+	double pos_x=900-360;
+	return (x-pos_x-Obstacle::r)/(2*Obstacle::r);
+}
+int get_j(double y)  // 该中心对应map的j值
+{
+	double pos_y=495-360;
+	return (y-pos_y-Obstacle::r)/(2*Obstacle::r);
+}
+void quicksort(int first, int last , Node a[])
+{
+	int i,j;
+	Node tem=a[first],t;
+	i=first; j=last;
+	if(i>j) return;
+	while(i!=j)
+	{
+		while(i<j && a[j].fx>=tem.fx)
+			j--;
+		while(i<j && a[i].fx<=tem.fx)
+			i++;
+		if(i<j)
+		{
+			t=a[j]; a[j]=a[i]; a[i]=t;
+		}
+	}
+	a[first]=a[j]; a[i]=tem;
+	quicksort(first, i-1,a);
+	quicksort(i+1,last,a);
+	return;
+}
+
+Node Node::operator=(Node a)
+{
+	this->fx=a.fx;
+	this->gx=a.gx;
+	this->hx=a.hx;
+	this->pos=a.pos;
+	this->fa=a.fa;
+	return *this;
+}
+bool Node::operator == (Node a)
+{
+	return (this->fx==a.fx&&this->gx==a.gx&&this->hx==a.hx&&this->pos.x==a.pos.x&&this->pos.y==a.pos.y&&this->fa==a.fa);
+}
+bool Node::operator != (Node a)
+{
+	return  !(*this==a);
+}
+Node::Node()
+{
+	fx=gx=hx=pos.x=pos.y=0;
+	fa=NULL;
+}
+Node::Node(double x,double y, Node *a, double fx1, double gx1, double hx1 )
+	:fa(a),fx(fx1),gx(gx1),hx(hx1)
+{
+	pos.x=x; pos.y=y;
+}
+
 
 Vector::Vector(double x1, double y1)
 {
@@ -132,7 +207,28 @@ void Game::startup()
 		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
 		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
 		FF_DECORATIVE, _T("微软雅黑"));
-	menu_start();
+	ben.mod=1;
+
+	for(int i=0; i<=42; i++)
+	{
+		for(int j=0; j<=42; j++)
+		{	
+			map[i][j].pos.x=square.pos_x-360+Obstacle::r+i*2*Obstacle::r;
+			map[i][j].pos.y=square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
+		}
+	}
+	monster[0].create_new_monster();
+	for(int i=0; i<5; i++)
+	{
+		int tem_x=get_i(normalize_x(obstacle[i].pos_x)),tem_y=get_j(normalize_y(obstacle[i].pos_y));
+		for(int xx=tem_x-1; xx<tem_x+1; xx++)
+			for(int yy=tem_y-1; yy<tem_y+1; yy++)
+				map[xx][yy].gx=MAX_INT/1000;
+	}
+//	while(1)
+//	ben.print_cha_new(ben.pos_x, ben.pos_y, ben.print_chara);
+//	menu_cha();
+	//menu_start();
 }
 void Game::clear()
 {
@@ -172,7 +268,7 @@ void Game::updateWithoutInput()
 			ben.judge_round=false;
 		}
 	}
-	num_monster_fresh++;
+//	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
@@ -183,6 +279,16 @@ void Game::updateWithoutInput()
 	for(int i=0 ; i<400; i++)
 		if(monster[i].exist==true)
 		{
+			get_path(monster[0].pos_x,monster[0].pos_y,monster[i].path);
+			monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			Vector tem(monster[i].path.pos.x-monster[i].pos_x,monster[i].path.pos.y-monster[i].pos_y);
+			tem.new_normalize();
+			if(monster[i].path.pos.y-monster[i].pos_y==0)
+			{	tem.y=0;  tem.x=1;}
+			if(monster[i].path.pos.x-monster[i].pos_x==0)
+			{	tem.x=0;  tem.y=1;}
+			monster[i].pos_x+= tem.x*monster[i].speed;
+			monster[i].pos_y+= tem.y*monster[i].speed;
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
 	for(int i=0; i<5; i++)
@@ -280,9 +386,9 @@ void Game::updateWithInput()
 	}
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	square.judge_input(ben.speed*3.0/100.0,ben.judge_round);
-	if(kbhit()) 
+	if(_kbhit()) 
 	{	
-		char order=getch();
+		char order=_getch();
 		if(order=='q')
 		{
 			if(ben.judge_round==false)
@@ -620,7 +726,7 @@ void Game::judge_coll_corner(double& pos_x,double& pos_y, POINT second[], int nu
 	for(int i=0; i<num_second; i++)
 	{
 		double tem=sqrt( (pos_x-second[i].x)*(pos_x-second[i].x) + (pos_y-second[i].y)*(pos_y-second[i].y) );
-		if( tem<40  )
+		if( tem<50  )
 		{
 			Vector a(center_x-second[i].x,center_y-second[i].y);
 			double xita=acosf( (a.x-hori.x) / a.get_lenth());
@@ -698,7 +804,7 @@ void Game::menu_start()
 		TextOut(hdc,680,700,str_exit,4);
 		TextOut(hdc,680,700,str_exit,4);
 		Polyline(hdc,sqr_now, 5);
-		char aaa=getch();
+		char aaa=_getch();
 		if(aaa=='\r') break;
 		if(aaa=='w'||aaa=='s')
 		{
@@ -752,9 +858,9 @@ void Game::menu_exit()
 		TextOut(hdc,665,600,str_save,4);
 		TextOut(hdc,680,700,str_exit,4);
 		TextOut(hdc,680,700,str_exit,4);
-		if(kbhit())
+		if(_kbhit())
 		{
-			char aaa=getch();
+			char aaa=_getch();
 			if(aaa=='\r') break;
 			if(aaa=='s'||aaa=='w')
 			{
@@ -816,6 +922,7 @@ void Game::menu_cha()
 		TextOut(hdc,1100,700,str_load,4);
 		TextOut(hdc,1100,700,str_load,4);
 		ben.print_cha_new(320,620,ben.print_chara);
+		ben.print_cha_new(770,620,ben.print_chara);
 		::SetDCPenColor(hdc, RGB(255,0,0));  
 		::SetDCBrushColor(hdc,RGB(255,0,0)); 
 		if(GetAsyncKeyState(VK_ESCAPE)<0)
@@ -823,9 +930,9 @@ void Game::menu_cha()
 			clear();
 			menu_start();
 		}
-		if(kbhit())
+		if(_kbhit())
 		{
-			char aaa=getch();
+			char aaa=_getch();
 			if(aaa=='\r') break;
 			if(aaa=='a'||aaa=='d')
 			{
@@ -848,6 +955,122 @@ void Game::menu_cha()
 	}
 	ben.mod=gamestatus;
 	clear();
+}
+void Game::get_path(double x ,double  y, Node &path)
+{
+/*//  特判 若怪物到人路径上无障碍物， 则直线走
+	{
+		double k=(ben.pos_y-y)/(ben.pos_x-x);
+		double b=y-k*x;
+		int i=0;
+		for(; i<5; i++)
+		{
+			if(abs(ben.pos_x-x)<5)
+			{
+				if(obstacle[i].pos_x<= x+Obstacle::r/2 &&obstacle[i].pos_x>= x-Obstacle::r/2 && obstacle[i].pos_y<=max(y,ben.pos_y)  &&obstacle[i].pos_y>=min(y,ben.pos_y) )
+					break;//障碍物位于两者之间
+			}
+			if(abs(ben.pos_y-y)<5)
+			{
+				if(obstacle[i].pos_y<= y+Obstacle::r/2 &&obstacle[i].pos_y>= y-Obstacle::r/2 && obstacle[i].pos_x<=max(x,ben.pos_x)  &&obstacle[i].pos_x>=min(x,ben.pos_x) )
+					break;//障碍物位于两者之间
+			}
+			double dis=abs(k*obstacle[i].pos_x-obstacle[i].pos_y+b)/(k*k+1);
+			double x1=( 1/k*obstacle[i].pos_x+obstacle[i].pos_y-b )/(k+1/k);
+			double y1=k*x1+b;
+			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(ben.pos_x,x)))  ) && ( x1<=max(ben.pos_x,x))) ) 
+			{
+				break;  //障碍物位于两者之间
+			}
+		}
+		if(i==5) 
+		{
+			path.pos.x=ben.pos_x; 
+			path.pos.y=ben.pos_y; 
+			return; 
+		}
+	}
+	return;*/
+	double aim_x=normalize_x(ben.pos_x),aim_y=normalize_y(ben.pos_y);
+	Node OPEN[1000],CLOSE[1000];
+	memset(OPEN,0,sizeof(OPEN));
+	memset(CLOSE,0,sizeof(CLOSE));
+	int first=0,last=1,last_close=0;
+
+	int now_x=get_i(normalize_x(x)),now_y=get_j(normalize_y(y));
+	OPEN[0]=map[now_x][now_y];
+	OPEN[0].hx=sqrt(  (get_i(normalize_x(x))-get_i(aim_x))*(get_i(normalize_x(x))-get_i(aim_x)) + (get_j(normalize_y(y))-get_j(aim_y))*(get_j(normalize_y(y))-get_j(aim_y))  );
+	OPEN[0].fa=NULL;
+	OPEN[0].gx=0;
+	Node empt;
+	while(first<last)
+	{
+		now_x=get_i(OPEN[first].pos.x),now_y=get_j(OPEN[first].pos.y);
+		if( OPEN[first].pos.x==aim_x && OPEN[first].pos.y==aim_y )
+		{
+			Node tem=OPEN[first];
+			while(tem.fa!=NULL)
+				tem=( *tem.fa);
+			path=tem;
+			return;
+		}
+		for(int i=now_x-1; i<=now_x+1; i++)
+		{
+			for(int j=now_y-1; j<=now_y+1; j++)
+			{
+				if(i==now_x && j==now_y ) continue;
+				map[i][j].fa=&map[now_x][now_y];
+			//	*map[i][j].fa=map[now_x][now_y];
+				int flag=0;
+				for(int k=first ; k<last ; k++)
+					if(OPEN[k]==map[i][j])  
+					{flag=1; break;}
+				// 计算该点的fx值，tem保存用以与可能存在的旧fx值比较
+				double tem_value=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14+sqrt( (get_i(aim_x)-i)*(get_i(aim_x)-i) +(get_j(aim_y)-j)*(get_j(aim_y)-j) );
+				if(flag==1) // 在OPEN表里找到
+				{
+					if(tem_value<map[i][j].fx)
+					{	
+						map[i][j].fx=tem_value;
+				//		map[i][j].fa=&map[now_x][now_y];
+				//		*map[i][j].fa=map[now_x][now_y];
+						map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+					}
+				}
+				else
+				{
+					int k=0;
+					for( ;k<last_close; k++)
+						if(CLOSE[k]==map[i][j])
+						{ break;}
+					if(k<last_close) // 在CLOSE表里找到
+					{
+						if(tem_value<map[i][j].fx)
+						{	
+							map[i][j].fx=tem_value;
+					//		map[i][j].fa=&map[now_x][now_y];
+				//			*map[i][j].fa=map[now_x][now_y];
+							map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+							CLOSE[k]=empt;
+							OPEN[last++]=map[i][j];
+						}
+					}
+					else
+					{
+						map[i][j].fx=tem_value;
+				//		map[i][j].fa=&map[now_x][now_y];
+				//		*map[i][j].fa=map[now_x][now_y];
+						map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+						OPEN[last++]=map[i][j];
+					}
+				}
+				first++;
+				CLOSE[last_close++]=map[now_x][now_y];
+				quicksort(first, last-1, OPEN);
+			}
+		}
+	}
+	return;
 }
 
 
@@ -872,41 +1095,97 @@ Charactor::~Charactor()
 }
 void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 {
-	new_point(x,y,print_chara);
-	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
-	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
-	Polygon(hdc,print_chara ,7);
-	if(judge_round==false)
-	{	
-		::SetDCPenColor(hdc, RGB(217,31,37)); //红色
-		::SetDCBrushColor(hdc,RGB(217,31,37));  //红色
-		if(GetAsyncKeyState(VK_UP)<0) 
-		{	Ellipse(hdc,x-10,y-25,x+10,y-5); return ; }
-		else if(GetAsyncKeyState(VK_DOWN)<0) 
-		{	Ellipse(hdc,x-10,y+5,x+10,y+25); return ; }
-		else if(GetAsyncKeyState(VK_LEFT)<0)
-		{	Ellipse(hdc,x-25,y-10,x-5,y+10); return ; }
-		else if(GetAsyncKeyState(VK_RIGHT)<0) 
-		{	Ellipse(hdc,x+5,y-10,x+25,y+10); return ; }
+	if(mod==1)
+	{
+		new_point(x,y,print_chara);
+		::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
+		::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+		Polygon(hdc,print_chara ,7);
+		if(judge_round==false)
+		{	
+			::SetDCPenColor(hdc, RGB(217,31,37)); //红色
+			::SetDCBrushColor(hdc,RGB(217,31,37));  //红色
+			if(GetAsyncKeyState(VK_UP)<0) 
+			{	Ellipse(hdc,x-10,y-25,x+10,y-5); return ; }
+			else if(GetAsyncKeyState(VK_DOWN)<0) 
+			{	Ellipse(hdc,x-10,y+5,x+10,y+25); return ; }
+			else if(GetAsyncKeyState(VK_LEFT)<0)
+			{	Ellipse(hdc,x-25,y-10,x-5,y+10); return ; }
+			else if(GetAsyncKeyState(VK_RIGHT)<0) 
+			{	Ellipse(hdc,x+5,y-10,x+25,y+10); return ; }
 			Ellipse(hdc,x+10,y-10,x-10,y+10);
+		}
+	}
+	else if(mod==2)
+	{
+		::SetDCPenColor(hdc, RGB(199,97,20));
+		::SetDCBrushColor(hdc,RGB(3,168,158)); 
+		Polygon(hdc,print_chara ,7);
+
+		SelectObject(hdc,hPen);
+		if(judge_round==false)
+		{
+		if(GetAsyncKeyState(VK_UP)<0) 
+			{	
+				print_cha_old(pos_x,pos_y,print_chara);
+				new_point(pos_x,pos_y, print_chara);
+				MoveToEx(hdc,pos_x-18,pos_y-10,NULL); 
+				LineTo(hdc,pos_x-2,pos_y-25);
+				MoveToEx(hdc,pos_x+18,pos_y-10,NULL);
+				LineTo(hdc,pos_x+2,pos_y-25);
+			}
+			else if(GetAsyncKeyState(VK_DOWN)<0) 
+			{	
+				print_cha_old(pos_x,pos_y,print_chara);
+				new_point(pos_x,pos_y, print_chara);
+				MoveToEx(hdc,pos_x-18,pos_y+10,NULL);
+				LineTo(hdc,pos_x-2,pos_y+25);
+				MoveToEx(hdc,pos_x+18,pos_y+10,NULL);
+				LineTo(hdc,pos_x+2,pos_y+25);
+			}
+			else if(GetAsyncKeyState(VK_LEFT)<0)
+			{	
+				print_cha_old(pos_x,pos_y,print_chara);
+				new_point_hori(pos_x,pos_y, print_chara);
+				MoveToEx(hdc,pos_x-15,pos_y+8,NULL);
+				LineTo(hdc,pos_x-2,pos_y+25);
+				MoveToEx(hdc,pos_x+15,pos_y+8,NULL);
+				LineTo(hdc,pos_x+2,pos_y+25);
+			}
+			else if(GetAsyncKeyState(VK_RIGHT)<0) 
+			{	
+				print_cha_old(pos_x,pos_y,print_chara);
+				new_point_hori(pos_x,pos_y, print_chara);
+				MoveToEx(hdc,pos_x-18,pos_y+10,NULL);
+				LineTo(hdc,pos_x-2,pos_y+25);
+				MoveToEx(hdc,pos_x+18,pos_y+10,NULL);
+				LineTo(hdc,pos_x+2,pos_y+25);
+			}
+			
+		}
+		::SelectObject(hdc,GetStockObject(DC_PEN));
+		::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	}
 }
 void Charactor::print_cha_old(double x,double y,POINT print_chara[])
 {
-	new_point(x,y,print_chara);
+	//if(abs(print_chara[0].x-pos_x)<1e-6)
+		new_point(x,y,print_chara);
+//	else
+//		new_point_hori(pos_x,pos_y,print_chara);
 	::SetDCPenColor(hdc, RGB(0,0,0));  
-	::SetDCBrushColor(hdc,RGB(0,0,0)); 
+	::SetDCBrushColor(hdc,RGB(0,0,0));
 	Polygon(hdc,print_chara ,7);
 }
 void Charactor::new_point(double x,double y, POINT print_chara[])
 {
-	POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
-	for(int i=0; i<7 ; i++)
-	{
-		print_chara[i].x=apt1[i].x;
-		print_chara[i].y=apt1[i].y;
-	}
-	return;
+		POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
+		for(int i=0; i<7 ; i++)
+		{
+			print_chara[i].x=apt1[i].x;
+			print_chara[i].y=apt1[i].y;
+		}
+		return;
 }
 void Charactor::print_round_new(double x,double y,POINT print_chara[])
 {
@@ -964,7 +1243,17 @@ void Charactor::judge_input()
 {
 	
 }
-
+void	Charactor::new_point_hori(double x, double y, POINT print_chara[])
+{
+	//POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
+	POINT apt1[]={x-40,y,x-14,y-30,x+14,y-30,x+40,y,x+14,y+30,x-14,y+30,x-40,y};
+	for(int i=0; i<7 ; i++)
+	{
+		print_chara[i].x=apt1[i].x;
+		print_chara[i].y=apt1[i].y;
+	}
+	return;
+}
 
 /*void Square::tester()
 {
@@ -1224,8 +1513,9 @@ void Monster::create_new_monster()
 	
 	pos_x=rand1*rand()%300+900;   // 900 495
 	pos_y=rand2*rand()%300+495;
-	speed=10;
+	speed=5;
 	num_edge=rand()%4+3;
+	path.pos.x=pos_x;path.pos.y=pos_y;
 	new_point(pos_x,pos_y,num_edge,pos);
 }
 

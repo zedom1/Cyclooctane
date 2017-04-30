@@ -22,6 +22,21 @@ struct Square;
 
 void gotoxy(int x,int y);
 void hidden();  //隐藏光标
+int normalize_x(double x);
+int normalize_y(double y);
+
+struct Node
+{
+public:
+	POINT pos;
+	Node * fa;
+	double fx,gx,hx;
+	Node operator = (Node a);
+	bool operator ==(Node a);
+	bool operator != (Node a);
+	Node();
+	Node(double x,double y, Node *a, double fx1, double gx1, double hx1 );
+};
 
 struct Vector
 {
@@ -78,6 +93,7 @@ public:
 	void print_round_new(double x,double y,POINT print_chara[]);
 	void print_part_cha_new(double x,double y, POINT print_chara[]);
 	void judge_input();
+	void new_point_hori(double x, double y, POINT print_chara[]);
 };
 
 struct Monster //小怪
@@ -91,6 +107,7 @@ public:
 	Monster(int num);
 	Monster();
 	POINT pos[10];
+	Node path;
 	static int num_total;
 	void print_now(int x, int y, int num, POINT pos[]);
 	void new_point(int x, int y, int num, POINT pos[]);
@@ -98,24 +115,6 @@ public:
 	void create_new_monster();
 };
 
-struct Boss//:public Monster // Boss
-{
-	
-public:
-	void skill();  //技能
-	void print_now();
-};
-
-struct Prop
-{
-	string name;
-	string describe;
-	double pos_x,pos_y;
-	bool eat;
-	bool exist;
-public:
-	void print_now();
-};
 
 struct Obstacle // 障碍
 {
@@ -145,14 +144,6 @@ public:
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle)=0;
 };
 
-struct Level   // 层
-{
-	static int num_level;
-public:
-	Room *room;
-	Level();
-	~Level();
-};
 
 struct Square
 {
@@ -178,12 +169,11 @@ public:
 struct Game
 {
 	Charactor ben;
-	Level *level;
-	Prop *prop;
 	Obstacle *obstacle;
 //	Room *room;
 	Square square;
 	Monster monster[500];
+	Node map[45][45];
 public:
 	void startup();
 	void updateWithInput();
@@ -206,5 +196,5 @@ public:
 	void menu_start();
 	void menu_exit();
 	void menu_cha();
-	
+	void get_path(double x ,double  y, Node &path);
 };
