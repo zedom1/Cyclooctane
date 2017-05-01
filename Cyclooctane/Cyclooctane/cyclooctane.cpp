@@ -209,7 +209,7 @@ void Game::startup()
 		FF_DECORATIVE, _T("Î¢ÈíÑÅºÚ"));
 	ben.mod=1;
 
-	while(1) menu_cha();
+	menu_cha();
 	for(int i=0; i<=42; i++)
 	{
 		for(int j=0; j<=42; j++)
@@ -1106,7 +1106,7 @@ Charactor::Charactor()
 	last=head;
 	memset(num_count,0,sizeof(num_count));
 	head->nex=NULL;
-	judge_hori=false;
+	judge_dir=1;
 }
 Charactor::~Charactor()
 {
@@ -1140,75 +1140,77 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		else
 		{
 			SelectObject(hdc,hPen);
-				Ellipse(hdc,x-15,y-15,x+15,y+15);
+			Ellipse(hdc,x-15,y-15,x+15,y+15);
 		}
 	}
-	else if(mod==2)
+	else if(mod==2|| mod==3)
 	{
-		::SetDCPenColor(hdc, RGB(199,97,20));
-		::SetDCBrushColor(hdc,RGB(3,168,158)); 
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
-		new_point(x,y,print_chara);
-		Polygon(hdc,print_chara ,7);
+		print_part_cha_new(x,y,print_chara);
+		if(mod==3) 
+			print_cha_ball(x,y,0);
+		print_cha_line(x,y);
 			if(GetAsyncKeyState(VK_UP)<0) 
-				{	
+				{
 					print_cha_old(x,y,print_chara);
-					judge_hori=false;print_part_cha_new(x,y,print_chara);
-					if(judge_round==false)
-						SelectObject(hdc,hPen);
-					else
-						SelectObject(hdc,pen_black);
-					MoveToEx(hdc,x-18,y-10,NULL); LineTo(hdc,x-2,y-25);
-					MoveToEx(hdc,x+18,y-10,NULL);LineTo(hdc,x+2,y-25);
+					judge_dir=1;print_part_cha_new(x,y,print_chara);
+					if(mod==2)
+					{
+						if(judge_round==false)
+							SelectObject(hdc,hPen);
+						else
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,x-18,y-10,NULL); LineTo(hdc,x-2,y-25);
+						MoveToEx(hdc,x+18,y-10,NULL);LineTo(hdc,x+2,y-25);
+					}
+					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
 				}
 			else if(GetAsyncKeyState(VK_DOWN)<0) 
 				{	
-					print_cha_old(x,y,print_chara);judge_hori=false;
+					print_cha_old(x,y,print_chara);judge_dir=3;
 					print_part_cha_new(x,y,print_chara);
-					if(judge_round==false)
-						SelectObject(hdc,hPen);
-					else
-						SelectObject(hdc,pen_black);
-					MoveToEx(hdc,x-18,y+10,NULL);LineTo(hdc,x-2,y+25);
-					MoveToEx(hdc,x+18,y+10,NULL);LineTo(hdc,x+2,y+25);
-				}
+					if(mod==2){
+						if(judge_round==false)
+							SelectObject(hdc,hPen);
+						else
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,x-18,y+10,NULL);LineTo(hdc,x-2,y+25);
+						MoveToEx(hdc,x+18,y+10,NULL);LineTo(hdc,x+2,y+25);
+					}
+					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			}
 			else if(GetAsyncKeyState(VK_LEFT)<0)
 				{	
 					SelectObject(hdc,hPen);
-					print_cha_old(x,y,print_chara);judge_hori=true;
+					print_cha_old(x,y,print_chara);judge_dir=2;
 					print_part_cha_new(x,y,print_chara);
-					if(judge_round==false)
-						SelectObject(hdc,hPen);
-					else
-						SelectObject(hdc,pen_black);
-					MoveToEx(hdc,x-20,y-5,NULL);LineTo(hdc,x-8,y-20);
-					MoveToEx(hdc,x-20,y+5,NULL);LineTo(hdc,x-8,y+20);
-				}
+					if(mod==2)
+					{
+						if(judge_round==false)
+							SelectObject(hdc,hPen);
+						else
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,x-20,y-5,NULL);LineTo(hdc,x-8,y-20);
+						MoveToEx(hdc,x-20,y+5,NULL);LineTo(hdc,x-8,y+20);
+					}
+					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			}
 			else if(GetAsyncKeyState(VK_RIGHT)<0) 
-				{	
+			{	
 					SelectObject(hdc,hPen);print_cha_old(x,y,print_chara);
-					judge_hori=true;print_part_cha_new(x,y,print_chara);
-					if(judge_round==false)
-						SelectObject(hdc,hPen);
-					else
-						SelectObject(hdc,pen_black);
-					MoveToEx(hdc,x+20,y-5,NULL);LineTo(hdc,x+8,y-20);
-					MoveToEx(hdc,x+20,y+5,NULL);LineTo(hdc,x+8,y+20);
-				}
-	}
-	else if(mod==3)
-	{
-		new_point(x,y,print_chara);
-		print_part_cha_new(x,y,print_chara);
-		::SetDCBrushColor(hdc,RGB(8,46,84));
-		Ellipse(hdc,x-10,y-45,x+10,y-25);
-		if(judge_round==false)
-			SelectObject(hdc,hPen);
-		else
-			SelectObject(hdc,pen_black);
-		MoveToEx(hdc,x-20,y-12,NULL);LineTo(hdc,x-20,y+12);
-		MoveToEx(hdc,x+20,y-12,NULL);LineTo(hdc,x+20,y+12);
+					judge_dir=4;print_part_cha_new(x,y,print_chara);
+					if(mod==2)
+					{
+						if(judge_round==false)
+							SelectObject(hdc,hPen);
+						else
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,x+20,y-5,NULL);LineTo(hdc,x+8,y-20);
+						MoveToEx(hdc,x+20,y+5,NULL);LineTo(hdc,x+8,y+20);
+					}
+					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			}
 	}
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
@@ -1221,10 +1223,20 @@ void Charactor::print_cha_old(double x,double y,POINT print_chara[])
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	new_point(x,y,print_chara);	
 	Polygon(hdc,print_chara ,7);
+	if(mod==3|| mod==2)
+	{
+		int tem=judge_dir;
+		judge_dir=1;
+		new_point(x,y,print_chara);	 Polygon(hdc,print_chara ,7);
+		judge_dir=2;
+		new_point(x,y,print_chara);	 Polygon(hdc,print_chara ,7);
+		judge_dir=tem;
+	}
+	print_cha_ball(x,y,1);
 }
 void Charactor::new_point(double x,double y, POINT print_chara[])
 {
-	if(mod==2&&judge_hori==true)
+	if( (mod==2|| mod==3)&& (judge_dir==2||judge_dir==4))
 	{
 		POINT apt1[]={x-40,y,x-14,y-30,x+14,y-30,x+40,y,x+14,y+30,x-14,y+30,x-40,y};
 		for(int i=0; i<7 ; i++)
@@ -1305,10 +1317,63 @@ void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 		::SetDCBrushColor(hdc,RGB(218,112,214));
 	}
 	Polygon(hdc,print_chara ,7);
+	if(mod==3)
+	{
+		if(judge_round==false)
+			SelectObject(hdc,hPen);
+		else
+			SelectObject(hdc,pen_black);
+		if(judge_dir==1 ||judge_dir==3)
+		{
+			MoveToEx(hdc,x-20,y-12,NULL);LineTo(hdc,x-20,y+12);
+			MoveToEx(hdc,x+20,y-12,NULL);LineTo(hdc,x+20,y+12);}
+		else
+		{MoveToEx(hdc,x-12,y-20,NULL);LineTo(hdc,x+12,y-20);
+		MoveToEx(hdc,x-12,y+20,NULL);LineTo(hdc,x+12,y+20);}
+	}
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	return;
 }
 void Charactor::judge_input()
 {
+}
+void Charactor::print_cha_line(double x, double y)
+{
+	if(judge_round==false)
+		SelectObject(hdc,hPen);
+	else
+		SelectObject(hdc,pen_black);
+	if(judge_dir==1 || judge_dir==3){   
+		MoveToEx(hdc,x-20,y-12,NULL);LineTo(hdc,x-20,y+12);
+		MoveToEx(hdc,x+20,y-12,NULL);LineTo(hdc,x+20,y+12);}
+	else{   
+		MoveToEx(hdc,x-12,y-20,NULL);LineTo(hdc,x+12,y-20);
+		MoveToEx(hdc,x-12,y+20,NULL);LineTo(hdc,x+12,y+20);}
+}
+void Charactor::print_cha_ball(double x, double y,bool judge_old)
+{
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	if(judge_old==0)
+		::SetDCBrushColor(hdc,RGB(8,46,84));
+	else
+	{
+		::SetDCPenColor(hdc, RGB(0,0,0));  
+		::SetDCBrushColor(hdc,RGB(0,0,0));
+		Ellipse(hdc,x-10,y-45,x+10,y-25);
+		Ellipse(hdc,x-45,y-10,x-25,y+10);
+		Ellipse(hdc,x-10,y+45,x+10,y+25);
+		Ellipse(hdc,x+45,y-10,x+25,y+10);
+	}
+	if(judge_dir==1)
+		Ellipse(hdc,x-10,y-45,x+10,y-25);
+	if(judge_dir==2)
+		Ellipse(hdc,x-45,y-10,x-25,y+10);
+	if(judge_dir==3)
+		Ellipse(hdc,x-10,y+45,x+10,y+25);
+	if(judge_dir==4)
+		Ellipse(hdc,x+45,y-10,x+25,y+10);
 }
 
 /*void Square::tester()
