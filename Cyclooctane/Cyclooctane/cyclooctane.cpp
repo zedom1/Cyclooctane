@@ -188,8 +188,8 @@ void Game::startup()
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	hdc=GetDC(hwnd);
-	hPen= CreatePen( PS_SOLID , 3 , RGB( 255 , 0 , 0 ));
-	pen_black= CreatePen( PS_SOLID , 3 , RGB( 0 , 0 , 0 ));
+	hPen= CreatePen( PS_SOLID ,5 , RGB( 255 , 0 , 0 ));
+	pen_black= CreatePen( PS_SOLID , 5 , RGB( 0 , 0 , 0 ));
 	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
 	COORD size={150,43};
 	SetConsoleCursorPosition(hOut,size);
@@ -209,6 +209,7 @@ void Game::startup()
 		FF_DECORATIVE, _T("微软雅黑"));
 	ben.mod=1;
 
+	while(1) menu_cha();
 	for(int i=0; i<=42; i++)
 	{
 		for(int j=0; j<=42; j++)
@@ -279,7 +280,7 @@ void Game::updateWithoutInput()
 	for(int i=0 ; i<400; i++)
 		if(monster[i].exist==true)
 		{
-			get_path(monster[0].pos_x,monster[0].pos_y,monster[i].path);
+			//get_path(monster[0].pos_x,monster[0].pos_y,monster[i].path);
 			monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 			Vector tem(monster[i].path.pos.x-monster[i].pos_x,monster[i].path.pos.y-monster[i].pos_y);
 			tem.new_normalize();
@@ -287,6 +288,8 @@ void Game::updateWithoutInput()
 			{	tem.y=0;  tem.x=1;}
 			if(monster[i].path.pos.x-monster[i].pos_x==0)
 			{	tem.x=0;  tem.y=1;}
+			if((monster[i].path.pos.x-monster[i].pos_x==0)&&(monster[i].path.pos.y-monster[i].pos_y==0))
+				tem.x=tem.y=0;  
 			monster[i].pos_x+= tem.x*monster[i].speed;
 			monster[i].pos_y+= tem.y*monster[i].speed;
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
@@ -470,11 +473,11 @@ bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int n
 		int j=i+1;
 		Vector *v1=new Vector( first[i].x,first[i].y);
 		Vector *v2=new Vector( first[j].x,first[j].y);
-		Vector edge(*v1-*v2);  // 得到人的一条边向量
+		Vector edge(*v1-*v2);  // 得到第一个图形的一条边向量
 		edge.vertical();  // 求得边的垂直向量作为投影轴
 		edge.new_normalize();   // 计算投影轴的单位向量
 
-		for(int k=0; k<num_first; k++)    // 在该投影轴下主角的最大及最小投影值
+		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图图形的最大及最小投影值
 		{
 			Vector tem(first[k].x,first[k].y);
 			double tot=tem.dotmulti(edge);
@@ -509,18 +512,18 @@ bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int n
 	}
 	if(flag==1)
 		return false;  // false代表没有发生碰撞
-	for(int i=0; i<num_second; i++)   // 求第一个图形的各个投影轴
+	for(int i=0; i<num_second; i++)   // 求第二个图形的各个投影轴
 	{
 		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
 		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
 		int j=i+1;
 		Vector *v1=new Vector( second[i].x,second[i].y);
 		Vector *v2=new Vector( second[j].x,second[j].y);
-		Vector edge(*v1-*v2);  // 得到人的一条边向量
+		Vector edge(*v1-*v2);  // 得到第二个图形的一条边向量
 		edge.vertical();  // 求得边的垂直向量作为投影轴
 		edge.new_normalize();   // 计算投影轴的单位向量
 
-		for(int k=0; k<num_first; k++)    // 在该投影轴下主角的最大及最小投影值
+		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图形的最大及最小投影值
 		{
 			Vector tem(first[k].x,first[k].y);
 			double tot=tem.dotmulti(edge);
@@ -562,13 +565,15 @@ bool Game::judge_coll_chara_to_wall()
 {
 	Vector shadow;
 	double num_move=0;
+	int flag=0;
 	if(judge_coll_single(ben.print_chara,7,square.edge1,5,shadow,num_move)==true)
 	{	
 		ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 		ben.pos_x-=shadow.x*(num_move+5);
 		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-		return true;
+		flag=1;
+		//return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge2,5,shadow,num_move)==true)
@@ -577,7 +582,8 @@ bool Game::judge_coll_chara_to_wall()
 		ben.pos_x-=shadow.x*(num_move+5);
 		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-		return true;
+		flag=1;
+	//	return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge3,5,shadow,num_move)==true)
@@ -586,7 +592,8 @@ bool Game::judge_coll_chara_to_wall()
 		ben.pos_x-=shadow.x*(num_move+5);
 		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-		return true;
+		flag=1;
+	//	return true;
 	}
 	//	printf("Collision!  %d\n", ++count);
 	if(judge_coll_single(ben.print_chara,7,square.edge4,5,shadow,num_move)==true)
@@ -595,9 +602,10 @@ bool Game::judge_coll_chara_to_wall()
 		ben.pos_x-=shadow.x*(num_move+5);
 		ben.pos_y-=shadow.y*(num_move+5);
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-		return true;
+		flag=1;
+	//	return true;
 	}
-	return false;
+	return flag==1;
 }
 bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second)
 {
@@ -901,7 +909,7 @@ void Game::menu_cha()
 	SelectObject(hdc,hFont);
 	LPCTSTR str_ben=L"Benzene";
 	LPCTSTR str_cyc=L"Cyclohexadiene";
-	LPCTSTR str_load=L"Load";
+	LPCTSTR str_pyran=L"Pyran";
 	LPCTSTR str_title=L"Charactor";
 	int gamestatus=1;
 	::SetDCPenColor(hdc, RGB(255,0,0));  
@@ -919,10 +927,14 @@ void Game::menu_cha()
 		SelectObject(hdc,hFont);
 		TextOut(hdc,200,700,str_ben,7);
 		TextOut(hdc,550,700,str_cyc,14);
-		TextOut(hdc,1100,700,str_load,4);
-		TextOut(hdc,1100,700,str_load,4);
+		TextOut(hdc,1120,700,str_pyran,5);
+		TextOut(hdc,1120,700,str_pyran,5);
+		ben.mod=1;
 		ben.print_cha_new(320,620,ben.print_chara);
+		ben.mod=2;
 		ben.print_cha_new(770,620,ben.print_chara);
+		ben.mod=3;
+		ben.print_cha_new(1200,620,ben.print_chara);
 		::SetDCPenColor(hdc, RGB(255,0,0));  
 		::SetDCBrushColor(hdc,RGB(255,0,0)); 
 		if(GetAsyncKeyState(VK_ESCAPE)<0)
@@ -940,12 +952,15 @@ void Game::menu_cha()
 					gamestatus=gamestatus>1?gamestatus-1:3;
 				if(aaa=='d')
 					gamestatus=gamestatus<3?gamestatus+1:1;
+				
 				::SetDCPenColor(hdc, RGB(0,0,0));  
 				::SetDCBrushColor(hdc,RGB(0,0,0)); 
 				Ellipse(hdc,310,790,325,800);
 				Ellipse(hdc,760,790,775,800);
 				Ellipse(hdc,1200,790,1215,800);
 			}
+			if(aaa=='q')
+				ben.judge_round=!ben.judge_round;
 		}
 		if(gamestatus==1)
 		{Ellipse(hdc,310,790,325,800);}
@@ -1012,6 +1027,9 @@ void Game::get_path(double x ,double  y, Node &path)
 			while(tem.fa!=NULL)
 				tem=( *tem.fa);
 			path=tem;
+			for(int i=0; i<42; i++)
+				for(int j=0; j<42; j++)
+					delete map[i][j].fa;
 			return;
 		}
 		for(int i=now_x-1; i<=now_x+1; i++)
@@ -1019,8 +1037,9 @@ void Game::get_path(double x ,double  y, Node &path)
 			for(int j=now_y-1; j<=now_y+1; j++)
 			{
 				if(i==now_x && j==now_y ) continue;
+				map[i][j].fa=new Node;
 				map[i][j].fa=&map[now_x][now_y];
-			//	*map[i][j].fa=map[now_x][now_y];
+				*map[i][j].fa=map[now_x][now_y];
 				int flag=0;
 				for(int k=first ; k<last ; k++)
 					if(OPEN[k]==map[i][j])  
@@ -1087,6 +1106,7 @@ Charactor::Charactor()
 	last=head;
 	memset(num_count,0,sizeof(num_count));
 	head->nex=NULL;
+	judge_hori=false;
 }
 Charactor::~Charactor()
 {
@@ -1100,6 +1120,8 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		new_point(x,y,print_chara);
 		::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
 		::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+		::SelectObject(hdc,GetStockObject(DC_PEN));
+		::SelectObject(hdc,GetStockObject(DC_BRUSH));
 		Polygon(hdc,print_chara ,7);
 		if(judge_round==false)
 		{	
@@ -1115,77 +1137,110 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 			{	Ellipse(hdc,x+5,y-10,x+25,y+10); return ; }
 			Ellipse(hdc,x+10,y-10,x-10,y+10);
 		}
+		else
+		{
+			SelectObject(hdc,hPen);
+				Ellipse(hdc,x-15,y-15,x+15,y+15);
+		}
 	}
 	else if(mod==2)
 	{
 		::SetDCPenColor(hdc, RGB(199,97,20));
 		::SetDCBrushColor(hdc,RGB(3,168,158)); 
-		Polygon(hdc,print_chara ,7);
-
-		SelectObject(hdc,hPen);
-		if(judge_round==false)
-		{
-		if(GetAsyncKeyState(VK_UP)<0) 
-			{	
-				print_cha_old(pos_x,pos_y,print_chara);
-				new_point(pos_x,pos_y, print_chara);
-				MoveToEx(hdc,pos_x-18,pos_y-10,NULL); 
-				LineTo(hdc,pos_x-2,pos_y-25);
-				MoveToEx(hdc,pos_x+18,pos_y-10,NULL);
-				LineTo(hdc,pos_x+2,pos_y-25);
-			}
-			else if(GetAsyncKeyState(VK_DOWN)<0) 
-			{	
-				print_cha_old(pos_x,pos_y,print_chara);
-				new_point(pos_x,pos_y, print_chara);
-				MoveToEx(hdc,pos_x-18,pos_y+10,NULL);
-				LineTo(hdc,pos_x-2,pos_y+25);
-				MoveToEx(hdc,pos_x+18,pos_y+10,NULL);
-				LineTo(hdc,pos_x+2,pos_y+25);
-			}
-			else if(GetAsyncKeyState(VK_LEFT)<0)
-			{	
-				print_cha_old(pos_x,pos_y,print_chara);
-				new_point_hori(pos_x,pos_y, print_chara);
-				MoveToEx(hdc,pos_x-15,pos_y+8,NULL);
-				LineTo(hdc,pos_x-2,pos_y+25);
-				MoveToEx(hdc,pos_x+15,pos_y+8,NULL);
-				LineTo(hdc,pos_x+2,pos_y+25);
-			}
-			else if(GetAsyncKeyState(VK_RIGHT)<0) 
-			{	
-				print_cha_old(pos_x,pos_y,print_chara);
-				new_point_hori(pos_x,pos_y, print_chara);
-				MoveToEx(hdc,pos_x-18,pos_y+10,NULL);
-				LineTo(hdc,pos_x-2,pos_y+25);
-				MoveToEx(hdc,pos_x+18,pos_y+10,NULL);
-				LineTo(hdc,pos_x+2,pos_y+25);
-			}
-			
-		}
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
+		new_point(x,y,print_chara);
+		Polygon(hdc,print_chara ,7);
+			if(GetAsyncKeyState(VK_UP)<0) 
+				{	
+					print_cha_old(x,y,print_chara);
+					judge_hori=false;print_part_cha_new(x,y,print_chara);
+					if(judge_round==false)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-18,y-10,NULL); LineTo(hdc,x-2,y-25);
+					MoveToEx(hdc,x+18,y-10,NULL);LineTo(hdc,x+2,y-25);
+				}
+			else if(GetAsyncKeyState(VK_DOWN)<0) 
+				{	
+					print_cha_old(x,y,print_chara);judge_hori=false;
+					print_part_cha_new(x,y,print_chara);
+					if(judge_round==false)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-18,y+10,NULL);LineTo(hdc,x-2,y+25);
+					MoveToEx(hdc,x+18,y+10,NULL);LineTo(hdc,x+2,y+25);
+				}
+			else if(GetAsyncKeyState(VK_LEFT)<0)
+				{	
+					SelectObject(hdc,hPen);
+					print_cha_old(x,y,print_chara);judge_hori=true;
+					print_part_cha_new(x,y,print_chara);
+					if(judge_round==false)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-20,y-5,NULL);LineTo(hdc,x-8,y-20);
+					MoveToEx(hdc,x-20,y+5,NULL);LineTo(hdc,x-8,y+20);
+				}
+			else if(GetAsyncKeyState(VK_RIGHT)<0) 
+				{	
+					SelectObject(hdc,hPen);print_cha_old(x,y,print_chara);
+					judge_hori=true;print_part_cha_new(x,y,print_chara);
+					if(judge_round==false)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x+20,y-5,NULL);LineTo(hdc,x+8,y-20);
+					MoveToEx(hdc,x+20,y+5,NULL);LineTo(hdc,x+8,y+20);
+				}
 	}
+	else if(mod==3)
+	{
+		new_point(x,y,print_chara);
+		print_part_cha_new(x,y,print_chara);
+		::SetDCBrushColor(hdc,RGB(8,46,84));
+		Ellipse(hdc,x-10,y-45,x+10,y-25);
+		if(judge_round==false)
+			SelectObject(hdc,hPen);
+		else
+			SelectObject(hdc,pen_black);
+		MoveToEx(hdc,x-20,y-12,NULL);LineTo(hdc,x-20,y+12);
+		MoveToEx(hdc,x+20,y-12,NULL);LineTo(hdc,x+20,y+12);
+	}
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 }
 void Charactor::print_cha_old(double x,double y,POINT print_chara[])
 {
-	//if(abs(print_chara[0].x-pos_x)<1e-6)
-		new_point(x,y,print_chara);
-//	else
-//		new_point_hori(pos_x,pos_y,print_chara);
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));  
 	::SetDCBrushColor(hdc,RGB(0,0,0));
+	new_point(x,y,print_chara);	
 	Polygon(hdc,print_chara ,7);
 }
 void Charactor::new_point(double x,double y, POINT print_chara[])
 {
-		POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
+	if(mod==2&&judge_hori==true)
+	{
+		POINT apt1[]={x-40,y,x-14,y-30,x+14,y-30,x+40,y,x+14,y+30,x-14,y+30,x-40,y};
 		for(int i=0; i<7 ; i++)
 		{
 			print_chara[i].x=apt1[i].x;
 			print_chara[i].y=apt1[i].y;
 		}
 		return;
+	}
+	POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
+	for(int i=0; i<7 ; i++)
+	{
+		print_chara[i].x=apt1[i].x;
+		print_chara[i].y=apt1[i].y;
+	}
+	return;
 }
 void Charactor::print_round_new(double x,double y,POINT print_chara[])
 {
@@ -1234,25 +1289,26 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 {
 	new_point(x,y,print_chara);
-	::SetDCPenColor(hdc, RGB(123,123,123));
-	::SetDCBrushColor(hdc,RGB(123,123,123));
+	if(mod==1)
+	{
+		::SetDCPenColor(hdc, RGB(123,123,123));
+		::SetDCBrushColor(hdc,RGB(123,123,123));
+	}
+	if(mod==2)
+	{
+		::SetDCPenColor(hdc, RGB(199,97,20));
+		::SetDCBrushColor(hdc,RGB(3,168,158)); 
+	}
+	if(mod==3)
+	{
+		::SetDCPenColor(hdc, RGB(255,99,71)); 
+		::SetDCBrushColor(hdc,RGB(218,112,214));
+	}
 	Polygon(hdc,print_chara ,7);
 	return;
 }
 void Charactor::judge_input()
 {
-	
-}
-void	Charactor::new_point_hori(double x, double y, POINT print_chara[])
-{
-	//POINT apt1[]={x,y-40,x-30,y-14,x-30,y+14,x,y+40,x+30,y+14,x+30,y-14,x,y-40};
-	POINT apt1[]={x-40,y,x-14,y-30,x+14,y-30,x+40,y,x+14,y+30,x-14,y+30,x-40,y};
-	for(int i=0; i<7 ; i++)
-	{
-		print_chara[i].x=apt1[i].x;
-		print_chara[i].y=apt1[i].y;
-	}
-	return;
 }
 
 /*void Square::tester()

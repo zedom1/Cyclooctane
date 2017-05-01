@@ -77,7 +77,8 @@ struct Charactor //角色
 {
 	string name;
 	double pos_x,pos_y;
-	bool judge_round;   // 判断能否旋转地图  
+	bool judge_round;   // 判断能否旋转地图 后为大招是否使用
+	bool judge_hori; // 判断此时的常态方向
 	Bullet *head,*last;
 	int num_bul;
 	double speed;
@@ -93,7 +94,6 @@ public:
 	void print_round_new(double x,double y,POINT print_chara[]);
 	void print_part_cha_new(double x,double y, POINT print_chara[]);
 	void judge_input();
-	void new_point_hori(double x, double y, POINT print_chara[]);
 };
 
 struct Monster //小怪
