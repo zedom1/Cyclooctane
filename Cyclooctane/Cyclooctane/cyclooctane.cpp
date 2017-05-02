@@ -1,9 +1,9 @@
 #include<iostream>
+#include<stdio.h>
 #include<algorithm>
-#include<string.h>
 #include<cmath>
 #include<string>
-#include<stdio.h>
+#include<string.h>
 #include <stdlib.h>
 #include <windows.h>
 #include <conio.h>
@@ -21,10 +21,10 @@ HPEN hPen,pen_black;
 HFONT hFont,hFont_title;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
-const double MAX_DOUBLE=1.79769e+308;
-const double MIN_DOUBLE=-MAX_DOUBLE;
 const int MAX_INT=0x7FFFFFFF;
 const int MIN_INT=-MAX_INT-1;
+const double MAX_DOUBLE=1.79769e+308;
+const double MIN_DOUBLE=-MAX_DOUBLE;
 int Bullet::num_time_count=0;
 int Monster::num_total=0;
 int num_monster_fresh=0;
@@ -50,7 +50,7 @@ void hidden()
 int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
 {
 	double pos_x=900-360;  //pos_y=495-360;
-	int ans1=((x-pos_x)/(2*Obstacle::r) );
+	int ans1=(abs(x-pos_x)/(2*Obstacle::r) );
 	double ans=(ans1)*2*Obstacle::r+pos_x+Obstacle::r;
 	return ans;
 } 
@@ -64,14 +64,14 @@ int normalize_y(double y)   //找到坐标所在方格的中心点y坐标
 int get_i(double x)   //该中心对应map的i值
 {
 	double pos_x=900-360;
-	return (x-pos_x-Obstacle::r)/(2*Obstacle::r);
+	return abs(x-pos_x-Obstacle::r)/(2*Obstacle::r);
 }
 int get_j(double y)  // 该中心对应map的j值
 {
 	double pos_y=495-360;
 	return (y-pos_y-Obstacle::r)/(2*Obstacle::r);
 }
-void quicksort(int first, int last , Node a[])
+void quicksort(int first, int last , Node* a)
 {
 	int i,j;
 	Node tem=a[first],t;
@@ -93,6 +93,30 @@ void quicksort(int first, int last , Node a[])
 	quicksort(i+1,last,a);
 	return;
 }
+bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut)
+{
+	double det=(b.x-a.x)*(c.y-d.y)-(c.x-d.x)*(b.y-a.y);
+	if(abs(det)<1e-6) return false;
+	double n1=((b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y) )/det;
+	if(n1>1 || n1<0) return false;
+	n1=((c.x-a.x)*(c.y-d.y)-(c.x-d.x)*(c.y-a.y) )/det;
+	if(n1>1 || n1<0) return false;
+	cut.x=a.x+n1*(b.x-a.x);
+	cut.y=a.y+n1*(b.y-a.y);
+	return true;
+	/*
+	double sa=(a.x-c.x)*(b.y-c.y)-(a.y-c.y)*(b.x-c.x);
+	double sb=(a.x-d.x)*(b.y-d.y)-(a.y-d.y)*(b.x-d.x);
+	if(sa*sb>=0) return false;
+	double sc=(c.x - a.x) * (d.y - a.y) - (c.y - a.y) * (d.x - a.x);
+	double sd=sa+sc-sb;
+	if(sc*sd>=0) return false;
+	double t=sc/(sb-sa);
+	cut.x=a.x+t*(b.x-a.x);
+	cut.y=a.y+t*(b.y-a.y);
+	return true;*/
+}
+
 
 Node Node::operator=(Node a)
 {
@@ -114,9 +138,9 @@ bool Node::operator != (Node a)
 Node::Node()
 {
 	fx=gx=hx=pos.x=pos.y=0;
-	fa=NULL;
+	fa=0;
 }
-Node::Node(double x,double y, Node *a, double fx1, double gx1, double hx1 )
+Node::Node(double x,double y, int a, double fx1, double gx1, double hx1 )
 	:fa(a),fx(fx1),gx(gx1),hx(hx1)
 {
 	pos.x=x; pos.y=y;
@@ -180,7 +204,10 @@ Vector Vector::operator / (double a)
 	return temp_vector;
 }
 
-
+Game::Game()
+{
+	death_count=0;
+}
 void Game::startup()
 {
 	hidden();
@@ -209,7 +236,6 @@ void Game::startup()
 		FF_DECORATIVE, _T("微软雅黑"));
 	ben.mod=1;
 
-	menu_cha();
 	for(int i=0; i<=42; i++)
 	{
 		for(int j=0; j<=42; j++)
@@ -229,7 +255,7 @@ void Game::startup()
 //	while(1)
 //	ben.print_cha_new(ben.pos_x, ben.pos_y, ben.print_chara);
 //	menu_cha();
-	//menu_start();
+	menu_start();
 }
 void Game::clear()
 {
@@ -260,7 +286,8 @@ void Game::updateWithoutInput()
 {
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	if(ben.judge_round==true)
+	Bullet::num_time_count++;
+	if(ben.judge_round==true)  // CD
 	{
 		ben.num_count[ben.mod]++;
 		if(ben.num_count[ben.mod]>200)
@@ -269,7 +296,7 @@ void Game::updateWithoutInput()
 			ben.judge_round=false;
 		}
 	}
-//	num_monster_fresh++;
+	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
@@ -314,56 +341,121 @@ void Game::updateWithoutInput()
 }
 void Game::update_bullet()
 {
-	if(ben.last!=ben.head)
+	if(ben.mod==1)
 	{
-		Bullet *bul=ben.head->nex,*pre_bul=ben.head;
-		while(bul!=NULL)
+		if(ben.last!=ben.head)
 		{
-			bul->life--;
-			if(bul->life==0)
-				bul->exist=false;
-			if(bul->exist==true)
+			Bullet *bul=ben.head->nex,*pre_bul=ben.head;
+			while(bul!=NULL)
 			{
-				if( ( (bul->pos_x-square.pos_x)*(bul->pos_x-square.pos_x)  )+( (bul->pos_y-square.pos_y)*(bul->pos_y-square.pos_y) )>=350*350*2  )
+				bul->life++;
+				if(bul->life==ben.range)
 					bul->exist=false;
-				bul->print_bul_old(bul->pos_x,bul->pos_y);
-				bul->pos_x+=bul->speed*cosf(bul->xita);
-				bul->pos_y-=bul->speed*sinf(bul->xita);
-				bul->print_bul_new(bul->pos_x,bul->pos_y);
-				judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
-				Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
-				for(int i=0; i<400; i++)
-					if(monster[i].exist==true)
-						if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
-						{	
-							bul->exist=false;
-							monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-							monster[i].num_edge--;
-							if(monster[i].num_edge<3)
+				if(bul->exist==true)
+				{
+					if( ( (bul->pos_x-square.pos_x)*(bul->pos_x-square.pos_x)  )+( (bul->pos_y-square.pos_y)*(bul->pos_y-square.pos_y) )>=350*350*2  )
+						bul->exist=false;
+					bul->print_bul_old(bul->pos_x,bul->pos_y);
+					bul->pos_x+=bul->speed*cosf(bul->xita);
+					bul->pos_y-=bul->speed*sinf(bul->xita);
+					bul->print_bul_new(bul->pos_x,bul->pos_y);
+					judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
+					Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
+					for(int i=0; i<400; i++)
+						if(monster[i].exist==true)
+							if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
 							{	
-								monster[i].exist=false;
+								bul->exist=false;
+								monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+								monster[i].num_edge--;
+								if(monster[i].num_edge<3)
+								{	
+									monster[i].exist=false;
+									death_count++;
+								}
+								if(monster[i].exist!=false)
+									monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 							}
-							if(monster[i].exist!=false)
-								monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-						}
-			}
-			else
-			{
-				bul->print_bul_old(bul->pos_x,bul->pos_y);
-				if(bul->nex!=NULL)
-				{	pre_bul->nex=bul->nex;
-				delete bul;
-				bul=pre_bul->nex;
-				continue;
 				}
+				else
+				{
+					bul->print_bul_old(bul->pos_x,bul->pos_y);
+					if(bul->nex!=NULL)
+					{	pre_bul->nex=bul->nex;
+					delete bul;
+					bul=pre_bul->nex;
+					continue;
+					}
+				}
+				pre_bul=pre_bul->nex;
+				bul=bul->nex;
 			}
-			pre_bul=pre_bul->nex;
-			bul=bul->nex;
+		}
+		if(ben.head->nex==NULL)
+		{	
+			ben.head->nex=ben.last;
+			ben.last->nex=NULL;
 		}
 	}
-	if(ben.head->nex==NULL)
-	{	ben.head->nex=ben.last;
-	ben.last->nex=NULL;
+	if(ben.mod==2)
+	{
+		if(ben.line.exist==false&&Bullet::num_time_count!=3) return;
+		ben.line=ben.last_line;
+		POINT line1_head,line1_last,line2_head,line2_last;
+		POINT tem,cut; 
+		line1_head.x=ben.line.pos_x;
+		line1_head.y=ben.line.pos_y;
+		while(ben.line.life>0)
+		{
+			tem.x=line1_head.x+ben.line.life*cosf(ben.line.xita);
+			tem.y=line1_head.y-ben.line.life*sinf(ben.line.xita);
+			line1_last=tem;
+			int i=0;
+			for(; i<4; i++)
+			{
+				if(i==0)
+				{	
+					line2_head=square.edge1[0]; 
+					line2_last=square.edge1[1]; 
+				}
+				if(i==1)
+				{	line2_head=square.edge2[0]; 
+					line2_last=square.edge2[1]; }
+				if(i==2)
+				{	line2_head=square.edge3[0]; 
+					line2_last=square.edge3[1]; }
+				if(i==3)
+				{	line2_head=square.edge4[0]; 
+					line2_last=square.edge4[1]; }
+				if(judge_coll_line(line1_head,line1_last,line2_head,line2_last,cut)==true)
+				{
+					if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
+					{
+						SelectObject(hdc,hPen);
+						if(Bullet::num_time_count==3)
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
+						LineTo(hdc,cut.x,cut.y);
+						::SelectObject(hdc,GetStockObject(DC_PEN));
+						::SelectObject(hdc,GetStockObject(DC_BRUSH));
+						ben.line.life-=sqrt( (ben.line.pos_x-cut.x)*(ben.line.pos_x-cut.x)  + (ben.line.pos_y-cut.y)*(ben.line.pos_y-cut.y) );
+						judge_bullet(5,8,square.pos,cut.x, cut.y, ben.line.xita);
+						line1_head.x=cut.x; line1_head.y=cut.y;
+						break;
+					}
+				}
+			}
+			if(i<4) continue;
+			SelectObject(hdc,hPen);
+			if(Bullet::num_time_count==3)
+				SelectObject(hdc,pen_black);
+			MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
+			LineTo(hdc,line1_last.x,line1_last.y);
+			::SelectObject(hdc,GetStockObject(DC_PEN));
+			::SelectObject(hdc,GetStockObject(DC_BRUSH));
+			break;
+		}
+		ben.line.life=0;
 	}
 	return;
 }
@@ -401,6 +493,7 @@ void Game::updateWithInput()
 				{	
 					if(monster[i].exist=false) continue; 
 					monster[i].exist=false;
+					death_count++;
 					monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 				}
 				ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
@@ -408,7 +501,7 @@ void Game::updateWithInput()
 		}
 	}
 }
-void Game::judge_bullet(int start, int end, POINT pos[], double &x, double &y, double &xita)
+void Game::judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita)
 {
 	for(int i=start; i<=end; i++)
 	{
@@ -456,7 +549,6 @@ void Game::judge_bullet(int start, int end, POINT pos[], double &x, double &y, d
 				else
 					angle1=pi-angle1;
 			}
-			
 			xita=2*angle1-angle;
 			return;
 		}
@@ -686,6 +778,7 @@ void Game::judge_coll_mon_to_wall()
 			if( ( (monster[i].pos_x-square.pos_x)*(monster[i].pos_x-square.pos_x)  )+( (monster[i].pos_y-square.pos_y)*(monster[i].pos_y-square.pos_y) )>=350*350*2  )
 			{	
 				monster[i].exist=false;
+				death_count++;
 				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 			}
 		}
@@ -765,7 +858,6 @@ void Game::judge_coll_mon_to_obstacle()
 		if(monster[i].exist==true)
 			for(int j=0; j<5; j++)
 			{
-				
 				if(obstacle[j].judge_show==false) continue;
 				POINT tem[]={
 					obstacle[j].pos_x-Obstacle::r,obstacle[j].pos_y-Obstacle::r,
@@ -780,6 +872,7 @@ void Game::judge_coll_mon_to_obstacle()
 					if(monster[i].num_edge<3)
 					{	
 						monster[i].exist=false;
+						death_count++;
 					}
 					if(monster[i].exist!=false)
 						monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
@@ -917,6 +1010,7 @@ void Game::menu_cha()
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	Ellipse(hdc,310,790,325,800);
+	ben.set_new_data();
 	while(1)	
 	{
 		SetBkColor(hdc, RGB(0,0,0));
@@ -969,6 +1063,7 @@ void Game::menu_cha()
 		else {Ellipse(hdc,1200,790,1215,800);}
 	}
 	ben.mod=gamestatus;
+	ben.set_new_data();
 	clear();
 }
 void Game::get_path(double x ,double  y, Node &path)
@@ -1011,25 +1106,21 @@ void Game::get_path(double x ,double  y, Node &path)
 	memset(OPEN,0,sizeof(OPEN));
 	memset(CLOSE,0,sizeof(CLOSE));
 	int first=0,last=1,last_close=0;
-
 	int now_x=get_i(normalize_x(x)),now_y=get_j(normalize_y(y));
+	map[now_x][now_y].fa=now_x*42+now_y;
 	OPEN[0]=map[now_x][now_y];
 	OPEN[0].hx=sqrt(  (get_i(normalize_x(x))-get_i(aim_x))*(get_i(normalize_x(x))-get_i(aim_x)) + (get_j(normalize_y(y))-get_j(aim_y))*(get_j(normalize_y(y))-get_j(aim_y))  );
-	OPEN[0].fa=NULL;
 	OPEN[0].gx=0;
 	Node empt;
 	while(first<last)
 	{
-		now_x=get_i(OPEN[first].pos.x),now_y=get_j(OPEN[first].pos.y);
+		now_x=max(get_i(normalize_x(OPEN[first].pos.x)),0),now_y=max(get_j(normalize_y(OPEN[first].pos.y)),0);
 		if( OPEN[first].pos.x==aim_x && OPEN[first].pos.y==aim_y )
 		{
 			Node tem=OPEN[first];
-			while(tem.fa!=NULL)
-				tem=( *tem.fa);
+			while(map[tem.fa/42][tem.fa%42].fa!=tem.fa/42+tem.fa%42)
+				tem=map[tem.fa/42][tem.fa%42];
 			path=tem;
-			for(int i=0; i<42; i++)
-				for(int j=0; j<42; j++)
-					delete map[i][j].fa;
 			return;
 		}
 		for(int i=now_x-1; i<=now_x+1; i++)
@@ -1037,9 +1128,8 @@ void Game::get_path(double x ,double  y, Node &path)
 			for(int j=now_y-1; j<=now_y+1; j++)
 			{
 				if(i==now_x && j==now_y ) continue;
-				map[i][j].fa=new Node;
-				map[i][j].fa=&map[now_x][now_y];
-				*map[i][j].fa=map[now_x][now_y];
+				//////////////////////////////////////////////
+				map[i][j].fa=now_x*42+now_y;
 				int flag=0;
 				for(int k=first ; k<last ; k++)
 					if(OPEN[k]==map[i][j])  
@@ -1051,9 +1141,13 @@ void Game::get_path(double x ,double  y, Node &path)
 					if(tem_value<map[i][j].fx)
 					{	
 						map[i][j].fx=tem_value;
-				//		map[i][j].fa=&map[now_x][now_y];
-				//		*map[i][j].fa=map[now_x][now_y];
-						map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+				//////////////////////////////////////////////
+						map[i][j].fa=now_x*42+now_y;
+						map[i][j].gx=map[now_x][now_y].gx;
+						if(i==now_x || j==now_y)
+							map[i][j].gx+=10;
+						else
+							map[i][j].gx+=14;
 					}
 				}
 				else
@@ -1067,9 +1161,13 @@ void Game::get_path(double x ,double  y, Node &path)
 						if(tem_value<map[i][j].fx)
 						{	
 							map[i][j].fx=tem_value;
-					//		map[i][j].fa=&map[now_x][now_y];
-				//			*map[i][j].fa=map[now_x][now_y];
-							map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+					//////////////////////////////////////////////
+							map[i][j].fa=now_x*42+now_y;
+							map[i][j].gx=map[now_x][now_y].gx;
+							if(i==now_x || j==now_y)
+								map[i][j].gx+=10;
+							else
+								map[i][j].gx+=14;
 							CLOSE[k]=empt;
 							OPEN[last++]=map[i][j];
 						}
@@ -1077,9 +1175,13 @@ void Game::get_path(double x ,double  y, Node &path)
 					else
 					{
 						map[i][j].fx=tem_value;
-				//		map[i][j].fa=&map[now_x][now_y];
-				//		*map[i][j].fa=map[now_x][now_y];
-						map[i][j].gx=map[now_x][now_y].gx+((i==now_x || j==now_y))?10:14;
+			//////////////////////////////////////////////
+						map[i][j].fa=now_x*42+now_y;
+						map[i][j].gx=map[now_x][now_y].gx;
+						if(i==now_x || j==now_y)
+							map[i][j].gx+=10;
+						else
+							map[i][j].gx+=14;
 						OPEN[last++]=map[i][j];
 					}
 				}
@@ -1093,20 +1195,22 @@ void Game::get_path(double x ,double  y, Node &path)
 }
 
 
-Charactor::Charactor()
+Charactor::Charactor() // 默认1号
 {
-	pos_x=1200; 
-	pos_y=812;
+	pos_x=700; 
+	pos_y=495;
 	speed=10;
-	name="Cyclooo~";
-	num_bul=0;
-	new_point(pos_x,pos_y,print_chara);
 	judge_round=false;
+	judge_dir=1;
+	new_point(pos_x,pos_y,print_chara);
+	memset(num_count,0,sizeof(num_count));
+	mod=1;
+	name="Benzene";
+	num_bul=0;
 	head=new Bullet(pos_x,pos_y,0);
 	last=head;
-	memset(num_count,0,sizeof(num_count));
 	head->nex=NULL;
-	judge_dir=1;
+	range=10;
 }
 Charactor::~Charactor()
 {
@@ -1257,41 +1361,71 @@ void Charactor::new_point(double x,double y, POINT print_chara[])
 void Charactor::print_round_new(double x,double y,POINT print_chara[])
 {
 	if(judge_round==true) { print_cha_new(pos_x,pos_y,print_chara);	 return; }
-	Bullet::num_time_count++;
 	if(Bullet::num_time_count<3) return;
 	Bullet::num_time_count=0;
 	if((GetAsyncKeyState(VK_UP)<0)||(GetAsyncKeyState(VK_DOWN)<0)||(GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{	
-		print_part_cha_new(x,y,print_chara);
-		::SetDCPenColor(hdc, RGB(217,31,37));
-		::SetDCBrushColor(hdc,RGB(217,31,37));
-		if(GetAsyncKeyState(VK_UP)<0) 
-		{	
-			Ellipse(hdc,x-10,y-25,x+10,y-5);
-			last->nex=new Bullet(pos_x,pos_y-25,pi/2);
-			last=last->nex;
-			return;
+		if(mod==1)
+		{
+			print_part_cha_new(x,y,print_chara);
+			::SetDCPenColor(hdc, RGB(217,31,37));
+			::SetDCBrushColor(hdc,RGB(217,31,37));
+			if(GetAsyncKeyState(VK_UP)<0) 
+			{	
+				Ellipse(hdc,x-10,y-25,x+10,y-5);
+				last->nex=new Bullet(pos_x,pos_y-25,pi/2);
+				last=last->nex;
+				return;
+			}
+			if(GetAsyncKeyState(VK_DOWN)<0) 
+			{	
+				Ellipse(hdc,x-10,y+5,x+10,y+25);
+				last->nex=new Bullet(pos_x,pos_y+25,pi*3/2);
+				last=last->nex;
+				return;
+			}
+			if(GetAsyncKeyState(VK_LEFT)<0) 
+			{	
+				Ellipse(hdc,x-25,y-10,x-5,y+10); 
+				last->nex=new Bullet(pos_x-25,pos_y,pi+0.1);
+				last=last->nex;
+				return;
+			}
+			if(GetAsyncKeyState(VK_RIGHT)<0) 
+			{	
+				Ellipse(hdc,x+5,y-10,x+25,y+10);
+				last->nex=new Bullet(pos_x+25,pos_y,0);
+				last=last->nex;
+				return;
+			}
 		}
-		if(GetAsyncKeyState(VK_DOWN)<0) 
-		{	
-			Ellipse(hdc,x-10,y+5,x+10,y+25);
-			last->nex=new Bullet(pos_x,pos_y+25,pi*3/2);
-			last=last->nex;
-			return;
-		}
-		if(GetAsyncKeyState(VK_LEFT)<0) 
-		{	
-			Ellipse(hdc,x-25,y-10,x-5,y+10); 
-			last->nex=new Bullet(pos_x-25,pos_y,pi+0.1);
-			last=last->nex;
-			return;
-		}
-		if(GetAsyncKeyState(VK_RIGHT)<0) 
-		{	
-			Ellipse(hdc,x+5,y-10,x+25,y+10);
-			last->nex=new Bullet(pos_x+25,pos_y,0);
-			last=last->nex;
-			return;
+		if(mod==2)
+		{
+			num_bul=1;
+			last_line.life=line.life=range;
+			line.exist=true;
+			last_line.pos_x=line.pos_x=pos_x;
+			last_line.pos_y=line.pos_y=pos_y;
+			if(GetAsyncKeyState(VK_UP)<0) 
+			{	
+				last_line.xita=line.xita=pi/2.0;
+				return;
+			}
+			if(GetAsyncKeyState(VK_DOWN)<0) 
+			{	
+				last_line.xita=line.xita=pi*3.0/2.0;
+				return;
+			}
+			if(GetAsyncKeyState(VK_LEFT)<0) 
+			{	
+				last_line.xita=line.xita=pi;
+				return;
+			}
+			if(GetAsyncKeyState(VK_RIGHT)<0) 
+			{	
+				last_line.xita=line.xita=0.0;
+				return;
+			}
 		}
 	}
 	else
@@ -1375,6 +1509,36 @@ void Charactor::print_cha_ball(double x, double y,bool judge_old)
 	if(judge_dir==4)
 		Ellipse(hdc,x+45,y-10,x+25,y+10);
 }
+void Charactor::set_new_data()
+{
+	pos_x=1100; 
+	pos_y=680;
+	speed=10;
+	judge_round=false;
+	judge_dir=1;
+	new_point(pos_x,pos_y,print_chara);
+	memset(num_count,0,sizeof(num_count));
+	num_bul=0;
+	if(mod==1)
+	{
+		name="Benzene";
+		head=new Bullet(pos_x,pos_y,0);
+		last=head;
+		
+		head->nex=NULL;
+		range=20;
+	}
+	if(mod==2)
+	{
+		name="Cyclohexadiene";
+		range=550;
+	}
+	if(mod==3)
+	{
+		name="Pyran";
+		range=20;
+	}
+}
 
 /*void Square::tester()
 {
@@ -1411,10 +1575,10 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	};
 	POINT tem_corner[]=
 	{
-		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),	
-		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),	
-		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),	
-		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)
+		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),	  //左上近
+		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),	  //左下近
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),	  //右下近
+		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)    //右上近
 	};
 	POINT  tedge1[]=
 	{
@@ -1448,6 +1612,7 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 		squ_x+r1*cos(init+angle),     squ_y-r1*sin(init+angle),		//右上远
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)
 	};
+
 	for(int i=0; i<10 ; i++)
 	{pos[i].x=squ1[i].x;pos[i].y=squ1[i].y;}
 	for(int i=0; i<5; i++)
@@ -1512,7 +1677,14 @@ Bullet::Bullet(double x,double y,double xi)
 	nex=NULL;
 	speed=20;
 	exist=true;
-	life=20;
+	life=0;
+}
+Bullet::Bullet()
+{
+	pos_x=pos_y=0;
+	exist=false;
+	xita=0;
+	life=0;
 }
 void Bullet::print_bul_new(double pos_x, double pos_y)
 {
@@ -1529,6 +1701,16 @@ void Bullet::print_bul_old(double pos_x, double pos_y)
 	::SetDCPenColor(hdc, RGB(0,0,0));
 	::SetDCBrushColor(hdc,RGB(0,0,0));
 	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+}
+void Bullet::operator =(Bullet a)
+{
+	this->pos_x=a.pos_x,
+	this->pos_y=a.pos_y;
+	this->xita=a.xita;
+	this->exist=a.exist;
+	this->speed=a.speed;
+	this->life=a.life;
+	return;
 }
 
 

@@ -29,13 +29,13 @@ struct Node
 {
 public:
 	POINT pos;
-	Node * fa;
+	int fa;
 	double fx,gx,hx;
 	Node operator = (Node a);
 	bool operator ==(Node a);
 	bool operator != (Node a);
 	Node();
-	Node(double x,double y, Node *a, double fx1, double gx1, double hx1 );
+	Node(double x,double y, int a, double fx1, double gx1, double hx1 );
 };
 
 struct Vector
@@ -63,14 +63,16 @@ struct Bullet
 	double pos_x,pos_y;
 	double xita;
 	bool exist;
-	int life;
 	double speed;
+	int life;
 	struct Bullet *nex;
 public:
 	static int num_time_count;
 	Bullet(double x,double y,double xi);
+	Bullet();
 	void print_bul_new(double pos_x, double pos_y);
 	void print_bul_old(double pos_x, double pos_y);
+	void operator =(Bullet a);
 };
 
 struct Charactor //角色
@@ -80,8 +82,10 @@ struct Charactor //角色
 	bool judge_round;   // 判断能否旋转地图 后为大招是否使用
 	int judge_dir; // 判断此时的常态方向
 	Bullet *head,*last;
+	Bullet line,last_line;
 	int num_bul;
 	double speed;
+	int range;
 	POINT print_chara[14];
 	int mod;
 	int num_count[3];
@@ -96,6 +100,8 @@ public:
 	void judge_input();
 	void print_cha_line(double x, double y);
 	void print_cha_ball(double x, double y,bool judge_old);
+	void set_new_data();
+	// void set_old_data();
 };
 
 struct Monster //小怪
@@ -176,13 +182,15 @@ struct Game
 	Square square;
 	Monster monster[500];
 	Node map[45][45];
+	int death_count;
 public:
+	Game();
 	void startup();
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
 	void clear();
-	void judge_bullet(int start, int end, POINT pos[], double &x, double &y, double &xita);
+	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita);
 	void update_bullet();
 	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
 	bool judge_coll_chara_to_wall();
