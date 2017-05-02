@@ -17,7 +17,7 @@ HWND hwnd;
 HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
-HPEN hPen,pen_black; 
+HPEN hPen,pen_black,big_pen,big_black_pen; 
 HFONT hFont,hFont_title;
 const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
@@ -28,7 +28,6 @@ const double MIN_DOUBLE=-MAX_DOUBLE;
 int Bullet::num_time_count=0;
 int Monster::num_total=0;
 int num_monster_fresh=0;
-int num_fresh_count=0;
 const double Obstacle::r=20.0;
 
 
@@ -39,13 +38,6 @@ void gotoxy(int x,int y)
 	pos.X = x;
 	pos.Y = y;
 	SetConsoleCursorPosition(handle,pos);
-}
-void hidden()
-{
-	CONSOLE_CURSOR_INFO cci;
-	GetConsoleCursorInfo(hOut,&cci);
-	cci.bVisible=0;
-	SetConsoleCursorInfo(hOut,&cci);
 }
 int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
 {
@@ -104,17 +96,6 @@ bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut)
 	cut.x=a.x+n1*(b.x-a.x);
 	cut.y=a.y+n1*(b.y-a.y);
 	return true;
-	/*
-	double sa=(a.x-c.x)*(b.y-c.y)-(a.y-c.y)*(b.x-c.x);
-	double sb=(a.x-d.x)*(b.y-d.y)-(a.y-d.y)*(b.x-d.x);
-	if(sa*sb>=0) return false;
-	double sc=(c.x - a.x) * (d.y - a.y) - (c.y - a.y) * (d.x - a.x);
-	double sd=sa+sc-sb;
-	if(sc*sd>=0) return false;
-	double t=sc/(sb-sa);
-	cut.x=a.x+t*(b.x-a.x);
-	cut.y=a.y+t*(b.y-a.y);
-	return true;*/
 }
 
 
@@ -210,7 +191,6 @@ Game::Game()
 }
 void Game::startup()
 {
-	hidden();
 	srand(time(0));
 	hwnd=GetConsoleWindow();
 	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -244,7 +224,6 @@ void Game::startup()
 			map[i][j].pos.y=square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
 		}
 	}
-	monster[0].create_new_monster();
 	for(int i=0; i<5; i++)
 	{
 		int tem_x=get_i(normalize_x(obstacle[i].pos_x)),tem_y=get_j(normalize_y(obstacle[i].pos_y));
@@ -336,8 +315,7 @@ void Game::updateWithoutInput()
 	judge_coll_chara_to_wall();
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
-	//print_new();
-	
+
 }
 void Game::update_bullet()
 {
@@ -402,7 +380,7 @@ void Game::update_bullet()
 		if(ben.line.exist==false&&Bullet::num_time_count!=3) return;
 		ben.line=ben.last_line;
 		POINT line1_head,line1_last,line2_head,line2_last;
-		POINT tem,cut; 
+		POINT tem,cut,tttem; 
 		line1_head.x=ben.line.pos_x;
 		line1_head.y=ben.line.pos_y;
 		while(ben.line.life>0)
@@ -414,23 +392,37 @@ void Game::update_bullet()
 			for(; i<4; i++)
 			{
 				if(i==0)
-				{	
-					line2_head=square.edge1[0]; 
-					line2_last=square.edge1[1]; 
-				}
+				{	line2_head=square.edge1[0]; line2_last=square.edge1[1]; }
 				if(i==1)
-				{	line2_head=square.edge2[0]; 
-					line2_last=square.edge2[1]; }
+				{	line2_head=square.edge2[0];line2_last=square.edge2[1]; }
 				if(i==2)
-				{	line2_head=square.edge3[0]; 
-					line2_last=square.edge3[1]; }
+				{	line2_head=square.edge3[0]; line2_last=square.edge3[1]; }
 				if(i==3)
-				{	line2_head=square.edge4[0]; 
-					line2_last=square.edge4[1]; }
+				{	line2_head=square.edge4[0]; line2_last=square.edge4[1]; }
 				if(judge_coll_line(line1_head,line1_last,line2_head,line2_last,cut)==true)
 				{
 					if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
 					{
+						
+						for(int j=0; j<400; j++)
+							if(monster[j].exist==true)
+							{
+								for(int k=0; k<monster[j].num_edge; k++)
+								{
+									if(judge_coll_line(line1_head,cut,monster[j].pos[k],monster[j].pos[k+1],tttem)==true)
+									{
+										monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+										monster[j].num_edge--;
+										if(monster[j].num_edge<3)
+										{	
+											monster[j].exist=false;
+											death_count++;
+										}
+										if(monster[j].exist!=false)
+											monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+									}
+								}
+							}
 						SelectObject(hdc,hPen);
 						if(Bullet::num_time_count==3)
 							SelectObject(hdc,pen_black);
@@ -446,6 +438,25 @@ void Game::update_bullet()
 				}
 			}
 			if(i<4) continue;
+			for(int j=0; j<400; j++)
+				if(monster[j].exist==true)
+				{
+					for(int k=0; k<monster[j].num_edge; k++)
+					{
+						if(judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],tttem)==true)
+						{
+							monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+							monster[j].num_edge--;
+							if(monster[j].num_edge<3)
+							{	
+								monster[j].exist=false;
+								death_count++;
+							}
+							if(monster[j].exist!=false)
+								monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+						}
+					}
+				}
 			SelectObject(hdc,hPen);
 			if(Bullet::num_time_count==3)
 				SelectObject(hdc,pen_black);
@@ -1540,21 +1551,7 @@ void Charactor::set_new_data()
 	}
 }
 
-/*void Square::tester()
-{
-	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2); double tot=0.0822469;
-	POINT  tedge1[]=
-	{
-		pos_x+r2*cos(init*3.0+angle),     pos_y-r2*sin(3.0*init+angle-tot),
-		pos_x+r2*cos(init*5.0+angle),     pos_y-r2*sin(init*5.0+angle+tot),
-		pos_x+r1*cos(init*5.0+angle),     pos_y-r1*sin(init*5.0+angle+tot),
-		pos_x+r1*cos(init*3.0+angle),     pos_y-r1*sin(3.0*init+angle-tot),
-		pos_x+r2*cos(init*3.0+angle),     pos_y-r2*sin(3.0*init+angle-tot)
-	};
-	::SetDCPenColor(hdc, RGB(0,0,255));
-	::SetDCBrushColor(hdc,RGB(0,0,255));
-	Polygon(hdc,tedge1 ,5);
-}  */
+
 void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos[])
 {
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
