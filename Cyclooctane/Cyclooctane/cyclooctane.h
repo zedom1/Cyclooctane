@@ -1,3 +1,6 @@
+#ifndef MY_GAME
+#define MY_GAME
+
 #include<iostream>
 #include<algorithm>
 #include<string.h>
@@ -9,21 +12,31 @@
 #include <conio.h>
 #include <time.h>
 using namespace std;
-
-struct Vector;
-struct Charactor;  // 角色
-struct Monster;   //小怪
-struct Boss;   //boss
-struct Prop;   //道具
-struct Obstacle;  // 障碍
-struct Room;  // 房间
-struct Bullet;  // 子弹
+// 游戏组成类
+struct Charactor; 
+struct Monster; 
+struct Obstacle; 
+struct Room; 
+struct Bullet;  
 struct Square;
+struct Game;
 
-void gotoxy(int x,int y);
-void hidden();  //隐藏光标
-int normalize_x(double x);
-int normalize_y(double y);
+// 游戏数据类
+struct Data_Base;
+
+// 游戏状态类
+struct State;   
+struct MENU_START;
+struct MENU_CHA;
+struct ON_GAME;
+struct MENU_PAUSE;
+struct MENU_DEAD;
+struct EXIT;
+
+// 基础类
+struct Node;
+struct Vector;
+
 
 struct Node
 {
@@ -86,6 +99,7 @@ struct Charactor //角色
 	int num_bul;
 	double speed;
 	int range;
+	int life;
 	POINT print_chara[14];
 	int mod;
 	int num_count[3];
@@ -123,7 +137,6 @@ public:
 	void create_new_monster();
 };
 
-
 struct Obstacle // 障碍
 {
 	double pos_x,pos_y;
@@ -151,7 +164,6 @@ public:
 	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle)=0;
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle)=0;
 };
-
 
 struct Square
 {
@@ -183,13 +195,14 @@ struct Game
 	Monster monster[500];
 	Node map[45][45];
 	int death_count;
+	friend struct Data_Base;
 public:
 	Game();
 	void startup();
 	void updateWithInput();
 	void updateWithoutInput();
 	void show();
-	void clear();
+	static void clear();
 	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita);
 	void update_bullet();
 	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
@@ -208,3 +221,84 @@ public:
 	void menu_cha();
 	void get_path(double x ,double  y, Node &path);
 };
+
+struct Data_Base
+{
+	Charactor co_ben;
+	Obstacle *co_obstacle;
+	Square co_square;
+	Monster co_monster[500];
+	int co_death_count;
+	int co_Bullet_num_time_count;
+	int co_Monster_num_total;
+	int co_num_monster_fresh;
+
+	Data_Base();
+	Data_Base(const Data_Base& a);
+	void store_data(Data_Base& a);
+	void store_data(Game& b);
+	void fresh_data();
+	void set_data(Game& a);
+	void write_data();
+	void read_data();
+};
+
+struct State  
+{  
+    virtual State* transition(int) = 0;  
+	virtual void eventt()=0;
+};
+
+struct MENU_START:public State  
+{  
+	void eventt();
+    State* transition(int); 
+};  
+  
+struct MENU_CHA:public State  
+{  
+    State* transition(int);  
+	void eventt();
+};  
+  
+struct ON_GAME:public State  
+{  
+    State* transition(int);  
+	void eventt();
+};  
+  
+struct MENU_PAUSE:public State  
+{  
+    State* transition(int);  
+	void eventt();
+};  
+  
+struct MENU_DEAD:public State  
+{  
+    State* transition(int);
+	void eventt();
+};  
+
+struct EXIT:public State  
+{
+    State* transition(int);  
+	void eventt();
+};  
+
+struct FSM
+{  	
+public:  
+	static void reset();  
+	static State *current;
+};
+
+void gotoxy(int x,int y);
+int normalize_x(double x);  //找到坐标所在方格的中心点x坐标
+int normalize_y(double y);   //找到坐标所在方格的中心点y坐标
+int get_i(double x);   //该中心对应map的i值
+int get_j(double y);  // 该中心对应map的j值
+void quicksort(int first, int last , Node* a);
+bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);
+void initi();
+
+#endif

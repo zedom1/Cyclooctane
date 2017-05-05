@@ -12,6 +12,22 @@
 #include "cyclooctane.h"
 using namespace std;
 #pragma warning(disable:4244)
+
+/////////// 常量 ////////////////
+const double pi2=2*3.1415926535;
+const double pi=3.1415926535;
+const int MAX_INT=0x7FFFFFFF;
+const int MIN_INT=-MAX_INT-1;
+const double MAX_DOUBLE=1.79769e+308;
+const double MIN_DOUBLE=-MAX_DOUBLE;
+const double Obstacle::r=20.0;
+
+/////////// 变量 ////////////////
+int Bullet::num_time_count=0;
+int Monster::num_total=0;
+int num_monster_fresh=0;
+
+/////////// 全局对象 ////////////////
 HDC hdc;
 HWND hwnd;
 HANDLE hOut;
@@ -19,18 +35,16 @@ CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
 HPEN hPen,pen_black,big_pen,big_black_pen; 
 HFONT hFont,hFont_title;
-const double pi2=2*3.1415926535;
-const double pi=3.1415926535;
-const int MAX_INT=0x7FFFFFFF;
-const int MIN_INT=-MAX_INT-1;
-const double MAX_DOUBLE=1.79769e+308;
-const double MIN_DOUBLE=-MAX_DOUBLE;
-int Bullet::num_time_count=0;
-int Monster::num_total=0;
-int num_monster_fresh=0;
-const double Obstacle::r=20.0;
-
-
+Game cyclooctane;
+MENU_START s1;  
+MENU_CHA s2;  
+ON_GAME s3;  
+MENU_PAUSE s4;  
+MENU_DEAD s5;  
+EXIT s6;  
+State* FSM::current = NULL; 
+Data_Base new_data;
+/////////// 全局函数 ////////////////
 void gotoxy(int x,int y)
 {
 	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -97,8 +111,33 @@ bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut)
 	cut.y=a.y+n1*(b.y-a.y);
 	return true;
 }
+void initi()
+{
+	srand(time(0));
+	hwnd=GetConsoleWindow();
+	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	hdc=GetDC(hwnd);
+	hPen= CreatePen( PS_SOLID ,5 , RGB( 255 , 0 , 0 ));
+	pen_black= CreatePen( PS_SOLID , 5 , RGB( 0 , 0 , 0 ));
+	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
+	COORD size={150,43};
+	SetConsoleCursorPosition(hOut,size);
+	SetConsoleScreenBufferSize(hOut,size);
+	SMALL_RECT rc = {0,0, 150-1, 43-1};
+	SetConsoleWindowInfo(hOut,true ,&rc);
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	hFont=CreateFont(80,40,0,0,FW_NORMAL,false,false,false,
+		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
+		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
+		FF_DECORATIVE, _T("方正姚体"));
+	hFont_title=CreateFont(160,60,0,0,FW_NORMAL,false,false,false,
+		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
+		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
+		FF_DECORATIVE, _T("微软雅黑"));
+}
 
-
+/////////// Node ////////////////
 Node Node::operator=(Node a)
 {
 	this->fx=a.fx;
@@ -127,7 +166,7 @@ Node::Node(double x,double y, int a, double fx1, double gx1, double hx1 )
 	pos.x=x; pos.y=y;
 }
 
-
+/////////// Vector ////////////////
 Vector::Vector(double x1, double y1)
 {
 	x=x1;  y=y1;
@@ -185,56 +224,18 @@ Vector Vector::operator / (double a)
 	return temp_vector;
 }
 
+/////////// Game ////////////////
 Game::Game()
 {
 	death_count=0;
 }
 void Game::startup()
 {
-	srand(time(0));
-	hwnd=GetConsoleWindow();
-	hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	hdc=GetDC(hwnd);
-	hPen= CreatePen( PS_SOLID ,5 , RGB( 255 , 0 , 0 ));
-	pen_black= CreatePen( PS_SOLID , 5 , RGB( 0 , 0 , 0 ));
-	GetConsoleScreenBufferInfo(hOut, &bInfo ); 
-	COORD size={150,43};
-	SetConsoleCursorPosition(hOut,size);
-	SetConsoleScreenBufferSize(hOut,size);
-	SMALL_RECT rc = {0,0, 150-1, 43-1};
-	SetConsoleWindowInfo(hOut,true ,&rc);
-	::SelectObject(hdc,GetStockObject(DC_PEN));
-	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	obstacle=new Obstacle[5];
-	hFont=CreateFont(80,40,0,0,FW_NORMAL,false,false,false,
-		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
-		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
-		FF_DECORATIVE, _T("方正姚体"));
-	hFont_title=CreateFont(160,60,0,0,FW_NORMAL,false,false,false,
-		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
-		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
-		FF_DECORATIVE, _T("微软雅黑"));
-	ben.mod=1;
-
-	for(int i=0; i<=42; i++)
-	{
-		for(int j=0; j<=42; j++)
-		{	
-			map[i][j].pos.x=square.pos_x-360+Obstacle::r+i*2*Obstacle::r;
-			map[i][j].pos.y=square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
-		}
-	}
-	for(int i=0; i<5; i++)
-	{
-		int tem_x=get_i(normalize_x(obstacle[i].pos_x)),tem_y=get_j(normalize_y(obstacle[i].pos_y));
-		for(int xx=tem_x-1; xx<tem_x+1; xx++)
-			for(int yy=tem_y-1; yy<tem_y+1; yy++)
-				map[xx][yy].gx=MAX_INT/1000;
-	}
+	
 //	while(1)
 //	ben.print_cha_new(ben.pos_x, ben.pos_y, ben.print_chara);
 //	menu_cha();
-	menu_start();
+
 }
 void Game::clear()
 {
@@ -472,8 +473,7 @@ void Game::update_bullet()
 }
 void Game::updateWithInput()
 {
-	if( GetAsyncKeyState(VK_ESCAPE)<0 )
-		menu_exit();
+	
 	ben.judge_input();
 	if((GetAsyncKeyState('W')<0)||(GetAsyncKeyState('S')<0)|| (GetAsyncKeyState('A')<0) ||(GetAsyncKeyState('D')<0))
 	{
@@ -892,190 +892,15 @@ void Game::judge_coll_mon_to_obstacle()
 }
 void Game::menu_start()
 {
-	SelectObject(hdc,hFont);
-	SelectObject(hdc,hPen);
-	LPCTSTR str_start=L"Start";
-	LPCTSTR str_exit=L"Exit";
-	LPCTSTR str_load=L"Load";
-	LPCTSTR str_title=L"Cyclooctane";
-	int gamestatus=1;
-	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
-	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
-	SelectObject(hdc,hPen);
-	POINT sqr_now[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 };
-	while(1)	
-	{
-		SetBkColor(hdc, RGB(0,0,0));
-		SetTextColor(hdc,RGB(255,255,255));
-		SelectObject(hdc,hFont_title);
-		TextOut(hdc,380,200,str_title,11);
-		TextOut(hdc,380,200,str_title,11);
-		SelectObject(hdc,hFont);
-		TextOut(hdc,665,500,str_start,5);
-		TextOut(hdc,665,600,str_load,4);
-		TextOut(hdc,680,700,str_exit,4);
-		TextOut(hdc,680,700,str_exit,4);
-		Polyline(hdc,sqr_now, 5);
-		char aaa=_getch();
-		if(aaa=='\r') break;
-		if(aaa=='w'||aaa=='s')
-		{
-			if(aaa=='w')
-				gamestatus=gamestatus>1?gamestatus-1:3;
-			if(aaa=='s')
-				gamestatus=gamestatus<3?gamestatus+1:1;
-			clear();
-		}
-		SelectObject(hdc,hPen);
-		if(gamestatus==1)
-		{POINT sqr_a[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		else if(gamestatus==2)
-		{POINT sqr_a[]={ 655,600, 815,600, 815,683,  655,683 , 655,600 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		else {POINT sqr_a[]={ 672,700, 790,700, 790,783, 672,783 , 672,700 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
-		Polyline(hdc,sqr_now, 5);
-	}
-	clear();
-	if(gamestatus==3) 
-		exit(1);
-	if(gamestatus==2) // load
-	{
-	}
-	if(gamestatus==1)
-	{	
-		menu_cha();
-	}
-	return;
+	
 }
 void Game::menu_exit()
 {
-	clear();
-	int gamestatus=1;
-	LPCTSTR str_continue=L"Continue";
-	LPCTSTR str_save=L"Save";
-	LPCTSTR str_exit=L"Exit";
-	LPCTSTR str_pause=L"Pause";
-	SetBkColor(hdc, RGB(0,0,0));
-	SetTextColor(hdc,RGB(255,255,255));
-	::SetDCPenColor(hdc, RGB(255,0,0));  
-	::SetDCBrushColor(hdc,RGB(255,0,0)); 
-	::SelectObject(hdc,GetStockObject(DC_PEN));
-	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	Ellipse(hdc,575,535,585,545);
-	while(1)	
-	{
-		SelectObject(hdc,hFont_title);
-		TextOut(hdc,550,200,str_pause,5);
-		SelectObject(hdc,hFont);
-		TextOut(hdc,600,500,str_continue,8);
-		TextOut(hdc,665,600,str_save,4);
-		TextOut(hdc,680,700,str_exit,4);
-		TextOut(hdc,680,700,str_exit,4);
-		if(_kbhit())
-		{
-			char aaa=_getch();
-			if(aaa=='\r') break;
-			if(aaa=='s'||aaa=='w')
-			{
-				if(aaa=='w')
-					gamestatus=gamestatus>1?gamestatus-1:3;
-				if(aaa=='s')
-					gamestatus=gamestatus<3?gamestatus+1:1;
-				::SetDCPenColor(hdc, RGB(0,0,0));  
-				::SetDCBrushColor(hdc,RGB(0,0,0)); 
-				Ellipse(hdc,575,535,585,545);
-				Ellipse(hdc,640,635,650,645);
-				Ellipse(hdc,655,735,665,745);
-			}
-		}
-		::SetDCPenColor(hdc, RGB(255,0,0));  
-		::SetDCBrushColor(hdc,RGB(255,0,0)); 
-		if(gamestatus==1)
-		{Ellipse(hdc,575,535,585,545);}
-		else if(gamestatus==2)
-		{Ellipse(hdc,640,635,650,645);}
-		else {Ellipse(hdc,655,735,665,745);}
-		
-	}
-	if(gamestatus==3) 
-	{
-		clear();
-		menu_start();
-	}
-	if(gamestatus==2) // save
-	{
-
-	}
-	clear();
-	return;
+	
 }
 void Game::menu_cha()
 {
-	SelectObject(hdc,hFont);
-	LPCTSTR str_ben=L"Benzene";
-	LPCTSTR str_cyc=L"Cyclohexadiene";
-	LPCTSTR str_pyran=L"Pyran";
-	LPCTSTR str_title=L"Charactor";
-	int gamestatus=1;
-	::SetDCPenColor(hdc, RGB(255,0,0));  
-	::SetDCBrushColor(hdc,RGB(255,0,0)); 
-	::SelectObject(hdc,GetStockObject(DC_PEN));
-	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	Ellipse(hdc,310,790,325,800);
-	ben.set_new_data();
-	while(1)	
-	{
-		SetBkColor(hdc, RGB(0,0,0));
-		SetTextColor(hdc,RGB(255,255,255));
-		SelectObject(hdc,hFont_title);
-		TextOut(hdc,420,150,str_title,9);
-		TextOut(hdc,420,150,str_title,9);
-		SelectObject(hdc,hFont);
-		TextOut(hdc,200,700,str_ben,7);
-		TextOut(hdc,550,700,str_cyc,14);
-		TextOut(hdc,1120,700,str_pyran,5);
-		TextOut(hdc,1120,700,str_pyran,5);
-		ben.mod=1;
-		ben.print_cha_new(320,620,ben.print_chara);
-		ben.mod=2;
-		ben.print_cha_new(770,620,ben.print_chara);
-		ben.mod=3;
-		ben.print_cha_new(1200,620,ben.print_chara);
-		::SetDCPenColor(hdc, RGB(255,0,0));  
-		::SetDCBrushColor(hdc,RGB(255,0,0)); 
-		if(GetAsyncKeyState(VK_ESCAPE)<0)
-		{	
-			clear();
-			menu_start();
-		}
-		if(_kbhit())
-		{
-			char aaa=_getch();
-			if(aaa=='\r') break;
-			if(aaa=='a'||aaa=='d')
-			{
-				if(aaa=='a')
-					gamestatus=gamestatus>1?gamestatus-1:3;
-				if(aaa=='d')
-					gamestatus=gamestatus<3?gamestatus+1:1;
-				
-				::SetDCPenColor(hdc, RGB(0,0,0));  
-				::SetDCBrushColor(hdc,RGB(0,0,0)); 
-				Ellipse(hdc,310,790,325,800);
-				Ellipse(hdc,760,790,775,800);
-				Ellipse(hdc,1200,790,1215,800);
-			}
-			if(aaa=='q')
-				ben.judge_round=!ben.judge_round;
-		}
-		if(gamestatus==1)
-		{Ellipse(hdc,310,790,325,800);}
-		else if(gamestatus==2)
-		{Ellipse(hdc,760,790,775,800);}
-		else {Ellipse(hdc,1200,790,1215,800);}
-	}
-	ben.mod=gamestatus;
-	ben.set_new_data();
-	clear();
+	
 }
 void Game::get_path(double x ,double  y, Node &path)
 {
@@ -1205,7 +1030,7 @@ void Game::get_path(double x ,double  y, Node &path)
 	return;
 }
 
-
+/////////// Charactor ////////////////
 Charactor::Charactor() // 默认1号
 {
 	pos_x=700; 
@@ -1525,6 +1350,7 @@ void Charactor::set_new_data()
 	pos_x=1100; 
 	pos_y=680;
 	speed=10;
+	life=10;
 	judge_round=false;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
@@ -1551,7 +1377,7 @@ void Charactor::set_new_data()
 	}
 }
 
-
+/////////// Square ////////////////
 void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos[])
 {
 	double init=3.1415926/4.0,r1=sqrt(375*375*2),r2=sqrt(350*350*2);
@@ -1666,7 +1492,7 @@ void Square::judge_input(double speed,bool judge_round)
 	return;
 }
 
-
+/////////// Bullet ////////////////
 Bullet::Bullet(double x,double y,double xi)
 {
 	pos_x=x; pos_y=y;
@@ -1710,7 +1536,7 @@ void Bullet::operator =(Bullet a)
 	return;
 }
 
-
+/////////// Monster ////////////////
 Monster::Monster(int num)
 {
 //	create_new_monster();
@@ -1819,7 +1645,7 @@ void Monster::create_new_monster()
 	new_point(pos_x,pos_y,num_edge,pos);
 }
 
-
+/////////// Obstacle ////////////////
 void Obstacle::print_old()
 {
 	::SelectObject(hdc,GetStockObject(DC_PEN));
@@ -1895,3 +1721,385 @@ Obstacle::Obstacle()
 	}
 	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
 }
+
+/////////// Status ////////////////
+State* MENU_START::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 2:  
+            return &s2;  
+        case 6:  
+            return &s6;  
+        default:  
+            return &s1;  
+    }  
+}  
+void MENU_START::eventt()
+{
+	SelectObject(hdc,hFont);
+	SelectObject(hdc,hPen);
+	LPCTSTR str_start=L"Start";
+	LPCTSTR str_exit=L"Exit";
+	LPCTSTR str_load=L"Load";
+	LPCTSTR str_title=L"Cyclooctane";
+	int gamestatus=1;
+	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
+	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
+	SelectObject(hdc,hPen);
+	POINT sqr_now[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 };
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,380,200,str_title,11);
+		TextOut(hdc,380,200,str_title,11);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,665,500,str_start,5);
+		TextOut(hdc,665,600,str_load,4);
+		TextOut(hdc,680,700,str_exit,4);
+		TextOut(hdc,680,700,str_exit,4);
+		Polyline(hdc,sqr_now, 5);
+		char aaa=_getch();
+		if(aaa=='\r') break;
+		if(aaa=='w'||aaa=='s')
+		{
+			if(aaa=='w')
+				gamestatus=gamestatus>1?gamestatus-1:3;
+			if(aaa=='s')
+				gamestatus=gamestatus<3?gamestatus+1:1;
+			Game::clear();
+		}
+		SelectObject(hdc,hPen);
+		if(gamestatus==1)
+		{POINT sqr_a[]={ 655,500, 810,500,  810,583,  655,583 ,  655,500 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else if(gamestatus==2)
+		{POINT sqr_a[]={ 655,600, 815,600, 815,683,  655,683 , 655,600 };for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		else {POINT sqr_a[]={ 672,700, 790,700, 790,783, 672,783 , 672,700 }; for(int i=0; i<5; i++) {sqr_now[i].x=sqr_a[i].x;sqr_now[i].y=sqr_a[i].y;}}
+		Polyline(hdc,sqr_now, 5);
+	}
+	Game::clear();
+	if(gamestatus==1 || gamestatus==2)
+		gamestatus=2;
+	else
+		gamestatus=6;
+	FSM::current=transition(gamestatus);
+	return;
+}
+
+State* MENU_CHA::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 1:  
+            return &s1;  
+        case 3:  
+            return &s3;  
+        default:  
+            return &s2;  
+    }  
+}  
+void MENU_CHA::eventt()
+{
+	SelectObject(hdc,hFont);
+	LPCTSTR str_ben=L"Benzene";
+	LPCTSTR str_cyc=L"Cyclohexadiene";
+	LPCTSTR str_pyran=L"Pyran";
+	LPCTSTR str_title=L"Charactor";
+	int gamestatus=1;
+	int tem_mod=1;
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,310,790,325,800);
+	new_data.fresh_data();
+	new_data.co_ben.set_new_data();
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,420,150,str_title,9);
+		TextOut(hdc,420,150,str_title,9);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,200,700,str_ben,7);
+		TextOut(hdc,550,700,str_cyc,14);
+		TextOut(hdc,1120,700,str_pyran,5);
+		TextOut(hdc,1120,700,str_pyran,5);
+		new_data.co_ben.mod=1;
+		new_data.co_ben.print_cha_new(320,620,new_data.co_ben.print_chara);
+		new_data.co_ben.mod=2;
+		new_data.co_ben.print_cha_new(770,620,new_data.co_ben.print_chara);
+		new_data.co_ben.mod=3;
+		new_data.co_ben.print_cha_new(1200,620,new_data.co_ben.print_chara);
+		::SetDCPenColor(hdc, RGB(255,0,0));  
+		::SetDCBrushColor(hdc,RGB(255,0,0)); 
+		if(GetAsyncKeyState(VK_ESCAPE)<0)
+		{	
+			gamestatus=1;
+			break;
+		}
+		if(_kbhit())
+		{
+			char aaa=_getch();
+			if(aaa=='\r') {	gamestatus=3;break;}
+			if(aaa=='a'||aaa=='d')
+			{
+				if(aaa=='a')
+					tem_mod=tem_mod>1?tem_mod-1:3;
+				if(aaa=='d')
+					tem_mod=tem_mod<3?tem_mod+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  
+				::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,310,790,325,800);
+				Ellipse(hdc,760,790,775,800);
+				Ellipse(hdc,1200,790,1215,800);
+			}
+			if(aaa=='q')
+				new_data.co_ben.judge_round=!new_data.co_ben.judge_round;
+		}
+		if(tem_mod==1)
+		{Ellipse(hdc,310,790,325,800);}
+		else if(tem_mod==2)
+		{Ellipse(hdc,760,790,775,800);}
+		else {Ellipse(hdc,1200,790,1215,800);}
+	}
+	new_data.co_ben.mod=tem_mod;
+	new_data.co_ben.set_new_data();
+	Game::clear();
+	FSM::current=transition(gamestatus);
+}
+
+State* ON_GAME::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 4:  
+            return &s4;  
+        case 5:  
+            return &s5;  
+        default:  
+            return &s3; 
+    }  
+}  
+void ON_GAME::eventt()
+{
+	int gamestatus=3;
+	new_data.set_data(cyclooctane);
+	Game::clear();
+	while(1)  //  游戏循环执行
+	{
+		cyclooctane.show();   // 显示画面
+		cyclooctane.updateWithoutInput();  // 与输入无关的更新
+		cyclooctane.updateWithInput();    // 与输入有关的更新
+		cyclooctane.show();
+		Sleep(50);
+		if( GetAsyncKeyState(VK_ESCAPE)<0 )
+		{
+			gamestatus=4; break;
+		}
+		if(cyclooctane.ben.life==0)
+		{
+			gamestatus=5; break;
+		}
+	}
+	Game::clear();
+	FSM::current=transition(gamestatus);
+	return;
+} 
+
+State* MENU_PAUSE::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 1:  
+            return &s1;  
+        case 3:  
+            return &s3;  
+        default:  
+            return &s4;  
+    }  
+}  
+void MENU_PAUSE::eventt()
+{
+	int gamestatus=4;
+	int tem_status=1;
+	Game::clear();
+	LPCTSTR str_continue=L"Continue";
+	LPCTSTR str_save=L"Save";
+	LPCTSTR str_exit=L"Exit";
+	LPCTSTR str_pause=L"Pause";
+	SetBkColor(hdc, RGB(0,0,0));
+	SetTextColor(hdc,RGB(255,255,255));
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,575,535,585,545);
+	while(1)	
+	{
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,550,200,str_pause,5);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,600,500,str_continue,8);
+		TextOut(hdc,665,600,str_save,4);
+		TextOut(hdc,680,700,str_exit,4);
+		TextOut(hdc,680,700,str_exit,4);
+		if(_kbhit())
+		{
+			char aaa=_getch();
+			if(aaa=='\r') break;
+			if(aaa=='s'||aaa=='w')
+			{
+				if(aaa=='w')
+					tem_status=tem_status>1?tem_status-1:3;
+				if(aaa=='s')
+					tem_status=tem_status<3?tem_status+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  
+				::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,575,535,585,545);
+				Ellipse(hdc,640,635,650,645);
+				Ellipse(hdc,655,735,665,745);
+			}
+		}
+		::SetDCPenColor(hdc, RGB(255,0,0));  
+		::SetDCBrushColor(hdc,RGB(255,0,0)); 
+		if(tem_status==1)
+		{Ellipse(hdc,575,535,585,545);}
+		else if(tem_status==2)
+		{Ellipse(hdc,640,635,650,645);}
+		else {Ellipse(hdc,655,735,665,745);}
+	}
+	if( tem_status==1 || tem_status==2 ) 
+		gamestatus=3;
+	else if( tem_status==3 ) 
+		gamestatus=1;
+	Game::clear();
+	new_data.store_data(cyclooctane);
+	FSM::current=transition(gamestatus);
+} 
+
+State* MENU_DEAD::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 1:  
+            return &s1;  
+        case 6:  
+            return &s6;  
+        default:  
+            return &s5;  
+    }  
+}  
+void MENU_DEAD::eventt()
+{
+	printf("555");
+	if(_kbhit())
+	{
+		char order1=_getch();
+		int order=5;
+		switch(order1)
+		{
+		case 'w': order=1; break;
+		case 'e': order=2; break;
+		case 'r': order=3; break;
+		case 't': order=4; break;
+		case 'y': order=5; break;
+		case 'u': order=6; break;
+		}
+		FSM::current=transition(order);
+	}
+	Sleep(50);
+} 
+
+State* EXIT::transition(int)  
+{  
+    return NULL;  
+}  
+void EXIT::eventt()
+{
+	exit(0);
+} 
+
+/////////// Data Base ////////////////
+Data_Base::Data_Base()
+{
+	fresh_data();
+}
+void Data_Base::fresh_data()
+{
+	co_ben.set_new_data();
+	co_obstacle=NULL;
+	co_square.pos_x=900;  co_square.pos_y=495;
+	co_square.angle=0.0;  co_square.init=pi/4.0;
+	co_square.new_room_point(co_square.pos_x,co_square.pos_y,co_square.angle,co_square.pos);
+	memset(co_monster,0,sizeof(co_monster));
+	co_death_count=0;
+	co_Bullet_num_time_count=0;
+	co_Monster_num_total=0;
+	co_num_monster_fresh=0;
+
+	co_obstacle=new Obstacle[5];
+	/*for(int i=0; i<=42; i++)
+	{
+		for(int j=0; j<=42; j++)
+		{	
+			Game::map[i][j].pos.x=co_square.pos_x-360+Obstacle::r+i*2*Obstacle::r;
+			Game::map[i][j].pos.y=co_square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
+		}
+	}
+	for(int i=0; i<5; i++)
+	{
+		int tem_x=get_i(normalize_x(co_obstacle[i].pos_x)),tem_y=get_j(normalize_y(co_obstacle[i].pos_y));
+		for(int xx=tem_x-1; xx<tem_x+1; xx++)
+			for(int yy=tem_y-1; yy<tem_y+1; yy++)
+				Game::map[xx][yy].gx=MAX_INT/1000;
+	}*/
+}
+void Data_Base::store_data(Data_Base& a)
+{
+	*this=a;
+	return;
+}
+void Data_Base::store_data(Game& b)
+{
+	co_ben=b.ben;
+	co_obstacle=b.obstacle;
+	co_square=b.square;
+	for(int i=0 ; i<500; i++)
+		co_monster[i]=b.monster[i];
+	co_death_count=b.death_count;
+	co_Bullet_num_time_count=Bullet::num_time_count;
+	co_Monster_num_total=Monster::num_total;
+	co_num_monster_fresh=num_monster_fresh;
+	return;
+}
+void Data_Base::set_data(Game& a)
+{
+	a.ben=co_ben;
+	a.obstacle=co_obstacle;
+	a.square=co_square;
+	for(int i=0 ; i<500; i++)
+		a.monster[i]=co_monster[i];
+	a.death_count=co_death_count;
+	Bullet::num_time_count=co_Bullet_num_time_count;
+	Monster::num_total=co_Monster_num_total;
+	num_monster_fresh=co_num_monster_fresh;
+	return;
+}
+void Data_Base::read_data()
+{
+
+}
+void Data_Base::write_data()
+{
+
+}
+
+/////////// FSM ////////////////
+void FSM::reset()  
+{  
+    current = &s1;  
+} 
