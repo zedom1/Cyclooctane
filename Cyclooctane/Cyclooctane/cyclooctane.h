@@ -11,6 +11,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <time.h>
+#include <assert.h>
 using namespace std;
 // 游戏组成类
 struct Charactor; 
@@ -58,7 +59,6 @@ public:
 	Vector(double x1, double y1);
 	Vector(const Vector& a);
 	Vector() ;
-
 	Vector operator = (Vector a);
 	Vector operator - (Vector a);
 	Vector operator + (Vector a);
@@ -78,7 +78,7 @@ struct Bullet
 	bool exist;
 	double speed;
 	int life;
-	struct Bullet *nex;
+	Bullet *nex;
 public:
 	static int num_time_count;
 	Bullet(double x,double y,double xi);
@@ -92,7 +92,7 @@ struct Charactor //角色
 {
 	string name;
 	double pos_x,pos_y;
-	bool judge_round;   // 判断能否旋转地图 后为大招是否使用
+	int judge_cha_state;   //  后为大招是否使用
 	int judge_dir; // 判断此时的常态方向
 	Bullet *head,*last;
 	Bullet line,last_line;
@@ -105,7 +105,6 @@ struct Charactor //角色
 	int num_count[3];
 public:
 	Charactor();
-	~Charactor();
 	void print_cha_new(double x,double y,POINT print_chara[]);
 	void print_cha_old(double x,double y,POINT print_chara[]);
 	void new_point(double x,double y, POINT print_chara[]);
@@ -177,11 +176,10 @@ public:
 	POINT teleport[4][2];
 	POINT corner[4];
 	Square();
-	~Square();
 	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[]); //更新坐标数组
 	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle); // 画新房间
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle); //抹去旧房间
-	virtual void judge_input(double speed,bool judge_round);   // 根据输入更新角度
+	virtual void judge_input(double speed,int judge_cha_state,int mod);   // 根据输入更新角度
 
 //	void tester();
 };
@@ -216,9 +214,6 @@ public:
 	void judge_coll_cha_to_corner();
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
-	void menu_start();
-	void menu_exit();
-	void menu_cha();
 	void get_path(double x ,double  y, Node &path);
 };
 
@@ -232,21 +227,21 @@ struct Data_Base
 	int co_Bullet_num_time_count;
 	int co_Monster_num_total;
 	int co_num_monster_fresh;
-
+	~Data_Base();
 	Data_Base();
 	Data_Base(const Data_Base& a);
-	void store_data(Data_Base& a);
-	void store_data(Game& b);
-	void fresh_data();
-	void set_data(Game& a);
-	void write_data();
-	void read_data();
+	void store_data(const Data_Base& a);  // 复制数据
+	void store_data(const Game& b);  // 保存当前数据（备份）
+	void fresh_data();  // 重置数据
+	void set_data(Game& a);   // 数据上传至游戏
+	void write_data();    // 存档（从文件）
+	void read_data();    // 读档（从文件）
 };
 
 struct State  
 {  
-    virtual State* transition(int) = 0;  
-	virtual void eventt()=0;
+    virtual State* transition(int) = 0;   // 状态转移
+	virtual void eventt()=0;  // 该状态的事件
 };
 
 struct MENU_START:public State  
@@ -293,12 +288,12 @@ public:
 };
 
 void gotoxy(int x,int y);
-int normalize_x(double x);  //找到坐标所在方格的中心点x坐标
-int normalize_y(double y);   //找到坐标所在方格的中心点y坐标
-int get_i(double x);   //该中心对应map的i值
+int normalize_x(double x);  // 找到坐标所在方格的中心点x坐标
+int normalize_y(double y);   // 找到坐标所在方格的中心点y坐标
+int get_i(double x);   // 该中心对应map的i值
 int get_j(double y);  // 该中心对应map的j值
 void quicksort(int first, int last , Node* a);
-bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);
-void initi();
+bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);  // 线段相交判定并求交点（若有）
+void initi();  // 窗体初始化
 
 #endif

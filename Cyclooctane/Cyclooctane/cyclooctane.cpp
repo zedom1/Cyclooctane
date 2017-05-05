@@ -14,8 +14,8 @@ using namespace std;
 #pragma warning(disable:4244)
 
 /////////// 常量 ////////////////
-const double pi2=2*3.1415926535;
 const double pi=3.1415926535;
+const double pi2=2*pi;
 const int MAX_INT=0x7FFFFFFF;
 const int MIN_INT=-MAX_INT-1;
 const double MAX_DOUBLE=1.79769e+308;
@@ -35,14 +35,14 @@ CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
 HPEN hPen,pen_black,big_pen,big_black_pen; 
 HFONT hFont,hFont_title;
-Game cyclooctane;
+Game cyclooctane,empt;
 MENU_START s1;  
 MENU_CHA s2;  
 ON_GAME s3;  
 MENU_PAUSE s4;  
 MENU_DEAD s5;  
 EXIT s6;  
-State* FSM::current = NULL; 
+State* FSM::current=NULL; 
 Data_Base new_data;
 /////////// 全局函数 ////////////////
 void gotoxy(int x,int y)
@@ -228,14 +228,25 @@ Vector Vector::operator / (double a)
 Game::Game()
 {
 	death_count=0;
+	obstacle=new Obstacle[5];
 }
 void Game::startup()
 {
-	
-//	while(1)
-//	ben.print_cha_new(ben.pos_x, ben.pos_y, ben.print_chara);
-//	menu_cha();
-
+	/*for(int i=0; i<=42; i++)
+	{
+		for(int j=0; j<=42; j++)
+		{	
+			Game::map[i][j].pos.x=co_square.pos_x-360+Obstacle::r+i*2*Obstacle::r;
+			Game::map[i][j].pos.y=co_square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
+		}
+	}
+	for(int i=0; i<5; i++)
+	{
+		int tem_x=get_i(normalize_x(co_obstacle[i].pos_x)),tem_y=get_j(normalize_y(co_obstacle[i].pos_y));
+		for(int xx=tem_x-1; xx<tem_x+1; xx++)
+			for(int yy=tem_y-1; yy<tem_y+1; yy++)
+				Game::map[xx][yy].gx=MAX_INT/1000;
+	}*/
 }
 void Game::clear()
 {
@@ -267,13 +278,16 @@ void Game::updateWithoutInput()
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	Bullet::num_time_count++;
-	if(ben.judge_round==true)  // CD
+	if(ben.mod==1)
 	{
-		ben.num_count[ben.mod]++;
-		if(ben.num_count[ben.mod]>200)
+		if(ben.judge_cha_state)  // CD
 		{
-			ben.num_count[ben.mod]=0;
-			ben.judge_round=false;
+			ben.num_count[ben.mod]++;
+			if(ben.num_count[ben.mod]>200)
+			{
+				ben.num_count[ben.mod]=0;
+				ben.judge_cha_state=0;
+			}
 		}
 	}
 	num_monster_fresh++;
@@ -301,6 +315,12 @@ void Game::updateWithoutInput()
 			monster[i].pos_y+= tem.y*monster[i].speed;
 			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
 		}
+	update_bullet();
+	judge_coll_cha_to_mon();
+	judge_coll_mon_to_mon();
+	judge_coll_chara_to_wall();
+	judge_coll_mon_to_wall();
+	judge_coll_mon_to_obstacle();
 	for(int i=0; i<5; i++)
 	{	
 		obstacle[i].count++;
@@ -310,12 +330,7 @@ void Game::updateWithoutInput()
 			obstacle[i].count=0;
 		}
 	}
-	update_bullet();
-	judge_coll_cha_to_mon();
-	judge_coll_mon_to_mon();
-	judge_coll_chara_to_wall();
-	judge_coll_mon_to_wall();
-	judge_coll_mon_to_obstacle();
+	
 
 }
 void Game::update_bullet()
@@ -360,10 +375,12 @@ void Game::update_bullet()
 				{
 					bul->print_bul_old(bul->pos_x,bul->pos_y);
 					if(bul->nex!=NULL)
-					{	pre_bul->nex=bul->nex;
-					delete bul;
-					bul=pre_bul->nex;
-					continue;
+					{	
+						pre_bul->nex=bul->nex;
+						if(bul!=NULL)
+							delete bul;
+						bul=pre_bul->nex;
+						continue;
 					}
 				}
 				pre_bul=pre_bul->nex;
@@ -389,56 +406,6 @@ void Game::update_bullet()
 			tem.x=line1_head.x+ben.line.life*cosf(ben.line.xita);
 			tem.y=line1_head.y-ben.line.life*sinf(ben.line.xita);
 			line1_last=tem;
-			int i=0;
-			for(; i<4; i++)
-			{
-				if(i==0)
-				{	line2_head=square.edge1[0]; line2_last=square.edge1[1]; }
-				if(i==1)
-				{	line2_head=square.edge2[0];line2_last=square.edge2[1]; }
-				if(i==2)
-				{	line2_head=square.edge3[0]; line2_last=square.edge3[1]; }
-				if(i==3)
-				{	line2_head=square.edge4[0]; line2_last=square.edge4[1]; }
-				if(judge_coll_line(line1_head,line1_last,line2_head,line2_last,cut)==true)
-				{
-					if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
-					{
-						
-						for(int j=0; j<400; j++)
-							if(monster[j].exist==true)
-							{
-								for(int k=0; k<monster[j].num_edge; k++)
-								{
-									if(judge_coll_line(line1_head,cut,monster[j].pos[k],monster[j].pos[k+1],tttem)==true)
-									{
-										monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
-										monster[j].num_edge--;
-										if(monster[j].num_edge<3)
-										{	
-											monster[j].exist=false;
-											death_count++;
-										}
-										if(monster[j].exist!=false)
-											monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
-									}
-								}
-							}
-						SelectObject(hdc,hPen);
-						if(Bullet::num_time_count==3)
-							SelectObject(hdc,pen_black);
-						MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
-						LineTo(hdc,cut.x,cut.y);
-						::SelectObject(hdc,GetStockObject(DC_PEN));
-						::SelectObject(hdc,GetStockObject(DC_BRUSH));
-						ben.line.life-=sqrt( (ben.line.pos_x-cut.x)*(ben.line.pos_x-cut.x)  + (ben.line.pos_y-cut.y)*(ben.line.pos_y-cut.y) );
-						judge_bullet(5,8,square.pos,cut.x, cut.y, ben.line.xita);
-						line1_head.x=cut.x; line1_head.y=cut.y;
-						break;
-					}
-				}
-			}
-			if(i<4) continue;
 			for(int j=0; j<400; j++)
 				if(monster[j].exist==true)
 				{
@@ -458,6 +425,36 @@ void Game::update_bullet()
 						}
 					}
 				}
+			int i=0;
+			for(; i<4; i++)
+			{
+				if(i==0)
+				{	line2_head=square.edge1[0]; line2_last=square.edge1[1]; }
+				if(i==1)
+				{	line2_head=square.edge2[0];line2_last=square.edge2[1]; }
+				if(i==2)
+				{	line2_head=square.edge3[0]; line2_last=square.edge3[1]; }
+				if(i==3)
+				{	line2_head=square.edge4[0]; line2_last=square.edge4[1]; }
+				if(judge_coll_line(line1_head,line1_last,line2_head,line2_last,cut)==true)
+				{
+					if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
+					{
+						SelectObject(hdc,hPen);
+						if(Bullet::num_time_count==3)
+							SelectObject(hdc,pen_black);
+						MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
+						LineTo(hdc,cut.x,cut.y);
+						::SelectObject(hdc,GetStockObject(DC_PEN));
+						::SelectObject(hdc,GetStockObject(DC_BRUSH));
+						ben.line.life-=sqrt( (ben.line.pos_x-cut.x)*(ben.line.pos_x-cut.x)  + (ben.line.pos_y-cut.y)*(ben.line.pos_y-cut.y) );
+						judge_bullet(5,8,square.pos,cut.x, cut.y, ben.line.xita);
+						line1_head.x=cut.x; line1_head.y=cut.y;
+						break;
+					}
+				}
+			}
+			if(i<4) continue;
 			SelectObject(hdc,hPen);
 			if(Bullet::num_time_count==3)
 				SelectObject(hdc,pen_black);
@@ -473,8 +470,6 @@ void Game::update_bullet()
 }
 void Game::updateWithInput()
 {
-	
-	ben.judge_input();
 	if((GetAsyncKeyState('W')<0)||(GetAsyncKeyState('S')<0)|| (GetAsyncKeyState('A')<0) ||(GetAsyncKeyState('D')<0))
 	{
 		double old_x=ben.pos_x,old_y=ben.pos_y;
@@ -487,26 +482,35 @@ void Game::updateWithInput()
 			ben.pos_x=old_x-ben.speed;
 		if(GetAsyncKeyState('D')<0) 
 			ben.pos_x=old_x+ben.speed; 
-		
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
 	}
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
-	square.judge_input(ben.speed*3.0/100.0,ben.judge_round);
+	square.judge_input(ben.speed*3.0/100.0,ben.judge_cha_state,ben.mod);
 	if(_kbhit()) 
 	{	
 		char order=_getch();
 		if(order=='q')
 		{
-			if(ben.judge_round==false)
-			{	
-				ben.judge_round=true;
-				for(int i=0; i<Monster::num_total; i++)
+			if(ben.mod==1)
+			{
+				if(ben.judge_cha_state==0)
 				{	
-					if(monster[i].exist=false) continue; 
-					monster[i].exist=false;
-					death_count++;
-					monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					ben.judge_cha_state=1;
+					for(int i=0; i<Monster::num_total; i++)
+					{	
+						if(monster[i].exist=false) continue; 
+						monster[i].exist=false;
+						death_count++;
+						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					}
+					ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 				}
+			}
+			if(ben.mod==2)
+			{
+				ben.judge_cha_state++;
+				if(ben.judge_cha_state>2)
+					ben.judge_cha_state=0;
 				ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 			}
 		}
@@ -890,18 +894,6 @@ void Game::judge_coll_mon_to_obstacle()
 				}
 			}
 }
-void Game::menu_start()
-{
-	
-}
-void Game::menu_exit()
-{
-	
-}
-void Game::menu_cha()
-{
-	
-}
 void Game::get_path(double x ,double  y, Node &path)
 {
 /*//  特判 若怪物到人路径上无障碍物， 则直线走
@@ -1036,7 +1028,7 @@ Charactor::Charactor() // 默认1号
 	pos_x=700; 
 	pos_y=495;
 	speed=10;
-	judge_round=false;
+	judge_cha_state=0;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
@@ -1048,11 +1040,6 @@ Charactor::Charactor() // 默认1号
 	head->nex=NULL;
 	range=10;
 }
-Charactor::~Charactor()
-{
-	delete head;
-	delete last;
-}
 void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 {
 	if(mod==1)
@@ -1063,7 +1050,7 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
 		Polygon(hdc,print_chara ,7);
-		if(judge_round==false)
+		if(judge_cha_state==0)
 		{	
 			::SetDCPenColor(hdc, RGB(217,31,37)); //红色
 			::SetDCBrushColor(hdc,RGB(217,31,37));  //红色
@@ -1090,67 +1077,101 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		print_part_cha_new(x,y,print_chara);
 		if(mod==3) 
 			print_cha_ball(x,y,0);
-		print_cha_line(x,y);
-			if(GetAsyncKeyState(VK_UP)<0) 
+		if( !(mod==2&&judge_cha_state==2) )
+			print_cha_line(x,y);
+		if(GetAsyncKeyState(VK_UP)<0) 
+		{
+			print_cha_old(x,y,print_chara);
+			judge_dir=1;print_part_cha_new(x,y,print_chara);
+			if(mod==2)
+			{
+				if(judge_cha_state==0 || judge_cha_state==1)
 				{
-					print_cha_old(x,y,print_chara);
-					judge_dir=1;print_part_cha_new(x,y,print_chara);
-					if(mod==2)
-					{
-						if(judge_round==false)
-							SelectObject(hdc,hPen);
-						else
-							SelectObject(hdc,pen_black);
-						MoveToEx(hdc,x-18,y-10,NULL); LineTo(hdc,x-2,y-25);
-						MoveToEx(hdc,x+18,y-10,NULL);LineTo(hdc,x+2,y-25);
-					}
-					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+					if(judge_cha_state==0)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-18,y-10,NULL); LineTo(hdc,x-2,y-25);
+					MoveToEx(hdc,x+18,y-10,NULL);LineTo(hdc,x+2,y-25);
 				}
-			else if(GetAsyncKeyState(VK_DOWN)<0) 
-				{	
-					print_cha_old(x,y,print_chara);judge_dir=3;
-					print_part_cha_new(x,y,print_chara);
-					if(mod==2){
-						if(judge_round==false)
-							SelectObject(hdc,hPen);
-						else
-							SelectObject(hdc,pen_black);
-						MoveToEx(hdc,x-18,y+10,NULL);LineTo(hdc,x-2,y+25);
-						MoveToEx(hdc,x+18,y+10,NULL);LineTo(hdc,x+2,y+25);
-					}
-					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
-			}
-			else if(GetAsyncKeyState(VK_LEFT)<0)
-				{	
+				else
+				{
 					SelectObject(hdc,hPen);
-					print_cha_old(x,y,print_chara);judge_dir=2;
-					print_part_cha_new(x,y,print_chara);
-					if(mod==2)
-					{
-						if(judge_round==false)
-							SelectObject(hdc,hPen);
-						else
-							SelectObject(hdc,pen_black);
-						MoveToEx(hdc,x-20,y-5,NULL);LineTo(hdc,x-8,y-20);
-						MoveToEx(hdc,x-20,y+5,NULL);LineTo(hdc,x-8,y+20);
-					}
-					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+					Ellipse(hdc,x-15,y-15,x+15,y+15);
+				}
 			}
-			else if(GetAsyncKeyState(VK_RIGHT)<0) 
-			{	
-					SelectObject(hdc,hPen);print_cha_old(x,y,print_chara);
-					judge_dir=4;print_part_cha_new(x,y,print_chara);
-					if(mod==2)
-					{
-						if(judge_round==false)
-							SelectObject(hdc,hPen);
-						else
-							SelectObject(hdc,pen_black);
-						MoveToEx(hdc,x+20,y-5,NULL);LineTo(hdc,x+8,y-20);
-						MoveToEx(hdc,x+20,y+5,NULL);LineTo(hdc,x+8,y+20);
-					}
-					if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+		}
+		else if(GetAsyncKeyState(VK_DOWN)<0) 
+		{	
+			print_cha_old(x,y,print_chara);judge_dir=3;
+			print_part_cha_new(x,y,print_chara);
+			if(mod==2)
+			{
+				if(judge_cha_state==0 || judge_cha_state==1)
+				{
+					if(judge_cha_state==0)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-18,y+10,NULL);LineTo(hdc,x-2,y+25);
+					MoveToEx(hdc,x+18,y+10,NULL);LineTo(hdc,x+2,y+25);
+				}
+				else
+				{
+					SelectObject(hdc,hPen);
+					Ellipse(hdc,x-15,y-15,x+15,y+15);
+				}
 			}
+			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+		}
+		else if(GetAsyncKeyState(VK_LEFT)<0)
+		{	
+			SelectObject(hdc,hPen);
+			print_cha_old(x,y,print_chara);judge_dir=2;
+			print_part_cha_new(x,y,print_chara);
+			if(mod==2)
+			{
+				if(judge_cha_state==0 || judge_cha_state==1)
+				{
+					if(judge_cha_state==0)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x-20,y-5,NULL);LineTo(hdc,x-8,y-20);
+					MoveToEx(hdc,x-20,y+5,NULL);LineTo(hdc,x-8,y+20);
+				}
+				else
+				{
+					SelectObject(hdc,hPen);
+					Ellipse(hdc,x-15,y-15,x+15,y+15);
+				}
+			}
+			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+		}
+		else if(GetAsyncKeyState(VK_RIGHT)<0) 
+		{	
+			SelectObject(hdc,hPen);print_cha_old(x,y,print_chara);
+			judge_dir=4;print_part_cha_new(x,y,print_chara);
+			if(mod==2)
+			{
+				if(judge_cha_state==0 || judge_cha_state==1)
+				{
+					if(judge_cha_state==0)
+						SelectObject(hdc,hPen);
+					else
+						SelectObject(hdc,pen_black);
+					MoveToEx(hdc,x+20,y-5,NULL);LineTo(hdc,x+8,y-20);
+					MoveToEx(hdc,x+20,y+5,NULL);LineTo(hdc,x+8,y+20);
+				}
+				else
+				{
+					SelectObject(hdc,hPen);
+					Ellipse(hdc,x-15,y-15,x+15,y+15);
+				}
+			}
+			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+		}
 	}
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
@@ -1196,7 +1217,7 @@ void Charactor::new_point(double x,double y, POINT print_chara[])
 }
 void Charactor::print_round_new(double x,double y,POINT print_chara[])
 {
-	if(judge_round==true) { print_cha_new(pos_x,pos_y,print_chara);	 return; }
+	if( (judge_cha_state!=0&& (mod==1||mod==3) ) || (judge_cha_state==2&&mod==2)  ) { print_cha_new(pos_x,pos_y,print_chara);	 return; }
 	if(Bullet::num_time_count<3) return;
 	Bullet::num_time_count=0;
 	if((GetAsyncKeyState(VK_UP)<0)||(GetAsyncKeyState(VK_DOWN)<0)||(GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
@@ -1289,7 +1310,7 @@ void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 	Polygon(hdc,print_chara ,7);
 	if(mod==3)
 	{
-		if(judge_round==false)
+		if(judge_cha_state==false)
 			SelectObject(hdc,hPen);
 		else
 			SelectObject(hdc,pen_black);
@@ -1310,7 +1331,7 @@ void Charactor::judge_input()
 }
 void Charactor::print_cha_line(double x, double y)
 {
-	if(judge_round==false)
+	if(judge_cha_state==false)
 		SelectObject(hdc,hPen);
 	else
 		SelectObject(hdc,pen_black);
@@ -1351,7 +1372,7 @@ void Charactor::set_new_data()
 	pos_y=680;
 	speed=10;
 	life=10;
-	judge_round=false;
+	judge_cha_state=false;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
@@ -1478,10 +1499,9 @@ Square::Square()
 	init=pi/4.0;
 	new_room_point(pos_x,pos_y,angle,pos);
 }
-Square::~Square(){}
-void Square::judge_input(double speed,bool judge_round)
+void Square::judge_input(double speed,int judge_cha_state,int mod)
 {
-	if(judge_round==true)
+	if(  (judge_cha_state!=0&&mod==1) || (judge_cha_state==2&&mod==2)  )
 	if((GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{
 		paint_room_old(pos_x,pos_y,pos,angle);
@@ -1784,6 +1804,7 @@ void MENU_START::eventt()
 		gamestatus=2;
 	else
 		gamestatus=6;
+	new_data.store_data(empt);
 	FSM::current=transition(gamestatus);
 	return;
 }
@@ -1814,7 +1835,6 @@ void MENU_CHA::eventt()
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	Ellipse(hdc,310,790,325,800);
-	new_data.fresh_data();
 	new_data.co_ben.set_new_data();
 	while(1)	
 	{
@@ -1858,7 +1878,7 @@ void MENU_CHA::eventt()
 				Ellipse(hdc,1200,790,1215,800);
 			}
 			if(aaa=='q')
-				new_data.co_ben.judge_round=!new_data.co_ben.judge_round;
+				new_data.co_ben.judge_cha_state=1-new_data.co_ben.judge_cha_state;
 		}
 		if(tem_mod==1)
 		{Ellipse(hdc,310,790,325,800);}
@@ -1868,6 +1888,8 @@ void MENU_CHA::eventt()
 	}
 	new_data.co_ben.mod=tem_mod;
 	new_data.co_ben.set_new_data();
+	//cyclooctane.ben.mod=tem_mod;
+	//cyclooctane.ben.set_new_data();
 	Game::clear();
 	FSM::current=transition(gamestatus);
 }
@@ -1888,6 +1910,7 @@ void ON_GAME::eventt()
 {
 	int gamestatus=3;
 	new_data.set_data(cyclooctane);
+	new_data.store_data(empt);
 	Game::clear();
 	while(1)  //  游戏循环执行
 	{
@@ -1924,6 +1947,7 @@ State* MENU_PAUSE::transition(int x)
 }  
 void MENU_PAUSE::eventt()
 {
+	new_data.store_data(cyclooctane);
 	int gamestatus=4;
 	int tem_status=1;
 	Game::clear();
@@ -1977,7 +2001,6 @@ void MENU_PAUSE::eventt()
 	else if( tem_status==3 ) 
 		gamestatus=1;
 	Game::clear();
-	new_data.store_data(cyclooctane);
 	FSM::current=transition(gamestatus);
 } 
 
@@ -2020,6 +2043,7 @@ State* EXIT::transition(int)
 }  
 void EXIT::eventt()
 {
+	new_data.store_data(empt);
 	exit(0);
 } 
 
@@ -2028,10 +2052,21 @@ Data_Base::Data_Base()
 {
 	fresh_data();
 }
+Data_Base::Data_Base(const Data_Base& a)
+{
+	store_data(a);
+}
+Data_Base::~Data_Base()
+{
+	//if(co_obstacle!=NULL && co_obstacle!=cyclooctane.obstacle)
+	//	delete []co_obstacle;
+	//co_obstacle = NULL;
+}
 void Data_Base::fresh_data()
 {
 	co_ben.set_new_data();
-	co_obstacle=NULL;
+//	assert((co_obstacle == NULL));
+	co_obstacle = NULL;
 	co_square.pos_x=900;  co_square.pos_y=495;
 	co_square.angle=0.0;  co_square.init=pi/4.0;
 	co_square.new_room_point(co_square.pos_x,co_square.pos_y,co_square.angle,co_square.pos);
@@ -2040,30 +2075,21 @@ void Data_Base::fresh_data()
 	co_Bullet_num_time_count=0;
 	co_Monster_num_total=0;
 	co_num_monster_fresh=0;
-
-	co_obstacle=new Obstacle[5];
-	/*for(int i=0; i<=42; i++)
-	{
-		for(int j=0; j<=42; j++)
-		{	
-			Game::map[i][j].pos.x=co_square.pos_x-360+Obstacle::r+i*2*Obstacle::r;
-			Game::map[i][j].pos.y=co_square.pos_y-360+Obstacle::r+j*2*Obstacle::r;
-		}
-	}
-	for(int i=0; i<5; i++)
-	{
-		int tem_x=get_i(normalize_x(co_obstacle[i].pos_x)),tem_y=get_j(normalize_y(co_obstacle[i].pos_y));
-		for(int xx=tem_x-1; xx<tem_x+1; xx++)
-			for(int yy=tem_y-1; yy<tem_y+1; yy++)
-				Game::map[xx][yy].gx=MAX_INT/1000;
-	}*/
 }
-void Data_Base::store_data(Data_Base& a)
+void Data_Base::store_data(const Data_Base& a)
 {
-	*this=a;
+	co_death_count=a.co_death_count;
+	co_Bullet_num_time_count=a.co_Bullet_num_time_count;
+	co_Monster_num_total=a.co_Monster_num_total;
+	co_num_monster_fresh=a.co_num_monster_fresh;
+	for(int i=0; i<500; i++)
+		co_monster[i]=a.co_monster[i];
+	co_square=a.co_square;
+	co_obstacle=a.co_obstacle;
+	co_ben=a.co_ben;
 	return;
 }
-void Data_Base::store_data(Game& b)
+void Data_Base::store_data(const Game& b)
 {
 	co_ben=b.ben;
 	co_obstacle=b.obstacle;
