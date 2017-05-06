@@ -22,9 +22,9 @@ struct Vector;
 struct Charactor; 
 struct Monster; 
 struct Obstacle; 
-struct Room; 
 struct Bullet;  
 struct Square;
+struct Room; 
 struct Game;
 
 // 游戏数据类
@@ -158,20 +158,6 @@ public:
 	void new_center(double angle);
 };
 
-struct Room  // 房间
-{
-public:
-	Room();
-	~Room();
-	Obstacle *obstacle;
-	Square square;
-	Monster monster[500];
-	int time_count;
-	int old_door;
-	void new_room();
-	void new_door();
-};
-
 struct Square
 {
 public:
@@ -192,11 +178,28 @@ public:
 //	void tester();
 };
 
+struct Room  // 房间
+{
+public:
+	Room();
+	~Room();
+	Obstacle *obstacle;
+	Square square;
+	Monster monster[500];
+	int time_count;
+	int old_door;
+	void new_room();
+	void new_door();
+};
+
 struct Game
 {
 	Charactor ben;
-	Room room;
+	//Room room;
 	Node map[45][45];
+	Obstacle *obstacle;
+	Square square;
+	Monster monster[500];
 	int death_count;
 	int room_count;
 	friend struct Data_Base;

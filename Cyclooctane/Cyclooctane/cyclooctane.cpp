@@ -236,6 +236,7 @@ Game::Game()
 {
 	death_count=0;
 	room_count=0;
+	startup();
 }
 void Game::startup()
 {
@@ -258,6 +259,7 @@ void Game::startup()
 	if(obstacle!=NULL)
 		delete []obstacle;
 	obstacle=new Obstacle[5];
+	room_count=0;
 }
 void Game::clear()
 {
