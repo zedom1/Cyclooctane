@@ -1,14 +1,3 @@
-#include<iostream>
-#include<stdio.h>
-#include<algorithm>
-#include<cmath>
-#include<string>
-#include<string.h>
-#include <stdlib.h>
-#include <windows.h>
-#include <conio.h>
-#include <time.h>
-#include <tchar.h>
 #include "cyclooctane.h"
 using namespace std;
 #pragma warning(disable:4244)
@@ -41,7 +30,7 @@ MENU_CHA s2;
 ON_GAME s3;  
 MENU_PAUSE s4;  
 MENU_DEAD s5;  
-EXIT s6;  
+EXIT s6;
 State* FSM::current=NULL; 
 Data_Base new_data;
 /////////// 全局函数 ////////////////
@@ -111,6 +100,17 @@ bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut)
 	cut.y=a.y+n1*(b.y-a.y);
 	return true;
 }
+double point_to_line(POINT a, POINT head, POINT last)
+{
+	Vector head_a(head,a),last_a(last,a),head_last(head,last);
+	double r=head_a.dotmulti(head_last)/(head_last.get_lenth()*head_last.get_lenth());
+	if(r<=0)
+		return head_a.get_lenth();
+	if(r>=1)
+		return last_a.get_lenth();
+	double xita=head_a.dotmulti(head_last)/(head_last.get_lenth()*head_a.get_lenth());
+	return head_a.get_lenth()*sqrt(1-xita*xita);
+}
 void initi()
 {
 	srand(time(0));
@@ -178,6 +178,10 @@ Vector::Vector(const Vector& a)
 Vector::Vector() 
 {
 	x=0;  y=0;
+}
+Vector::Vector(POINT a , POINT b)
+{
+	x=b.x-a.x; y=b.y-a.y;
 }
 Vector Vector::vertical()  //把向量变成其垂直向量
 {
@@ -247,6 +251,10 @@ void Game::startup()
 			for(int yy=tem_y-1; yy<tem_y+1; yy++)
 				Game::map[xx][yy].gx=MAX_INT/1000;
 	}*/
+	death_count=0;
+	if(obstacle!=NULL)
+		delete []obstacle;
+	obstacle=new Obstacle[5];
 }
 void Game::clear()
 {
@@ -393,7 +401,7 @@ void Game::update_bullet()
 			ben.last->nex=NULL;
 		}
 	}
-	if(ben.mod==2)
+	if(ben.mod==2&& ( ben.judge_cha_state==0||ben.judge_cha_state==1))
 	{
 		if(ben.line.exist==false&&Bullet::num_time_count!=3) return;
 		ben.line=ben.last_line;
@@ -401,12 +409,16 @@ void Game::update_bullet()
 		POINT tem,cut,tttem; 
 		line1_head.x=ben.line.pos_x;
 		line1_head.y=ben.line.pos_y;
+		if(ben.judge_cha_state==1)
+			ben.line_array[ben.num_line_array++]=line1_head;
 		while(ben.line.life>0)
 		{
 			tem.x=line1_head.x+ben.line.life*cosf(ben.line.xita);
 			tem.y=line1_head.y-ben.line.life*sinf(ben.line.xita);
 			line1_last=tem;
-			for(int j=0; j<400; j++)
+			if(ben.judge_cha_state==0)
+			{
+				for(int j=0; j<400; j++)
 				if(monster[j].exist==true)
 				{
 					for(int k=0; k<monster[j].num_edge; k++)
@@ -425,6 +437,58 @@ void Game::update_bullet()
 						}
 					}
 				}
+			}
+			else
+			{
+				double minx=MAX_DOUBLE;
+				for(int j=0; j<400; j++) // 找激光可射中的最近的怪物的距离平方最小值
+				{
+					if(monster[j].exist==false) continue;
+					for(int k=0; k<monster[j].num_edge; k++)
+						if(judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],cut)==true)
+							if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
+							{	
+								minx=min(minx, (line1_head.x-monster[j].pos_x)*(line1_head.x-monster[j].pos_x)+(line1_head.y-monster[j].pos_y)*(line1_head.y-monster[j].pos_y)  );
+								break;
+							}
+				}
+				int j=0;
+				for( ;j<400; j++) //找激光可射中的最近的怪物
+					if(monster[j].exist==true)
+					{
+						if(minx!=(line1_head.x-monster[j].pos_x)*(line1_head.x-monster[j].pos_x)+(line1_head.y-monster[j].pos_y)*(line1_head.y-monster[j].pos_y))
+							continue;
+						double minx1=MAX_DOUBLE;
+						for(int k=0; k<monster[j].num_edge; k++) // 找该怪物距离出射点最近的一条边并记录最小值
+						{
+							minx1=min(minx1,point_to_line(line1_head,monster[j].pos[k],monster[j].pos[k+1]));
+						}
+						int k=0;
+						for(; k<monster[j].num_edge; k++)
+						{
+							if(minx1!=point_to_line(line1_head,monster[j].pos[k],monster[j].pos[k+1])) continue;
+							judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],cut);
+							monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+							monster[j].exist=false;
+							//printf("1111\n");
+							death_count++;
+							SelectObject(hdc,hPen);
+							if(Bullet::num_time_count==3)
+								SelectObject(hdc,pen_black);
+							MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
+							LineTo(hdc,cut.x,cut.y);
+							::SelectObject(hdc,GetStockObject(DC_PEN));
+							::SelectObject(hdc,GetStockObject(DC_BRUSH));
+							ben.line.life-=sqrt( (ben.line.pos_x-cut.x)*(ben.line.pos_x-cut.x)  + (ben.line.pos_y-cut.y)*(ben.line.pos_y-cut.y) );
+							judge_bullet(k,k+1,monster[j].pos,cut.x, cut.y, ben.line.xita);
+							line1_head.x=cut.x; line1_head.y=cut.y;
+							ben.line_array[ben.num_line_array++]=cut;
+							break;
+						}
+					if(k<monster[j].num_edge) break;
+				}
+				if(j<400) continue;
+			}
 			int i=0;
 			for(; i<4; i++)
 			{
@@ -440,6 +504,8 @@ void Game::update_bullet()
 				{
 					if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
 					{
+						if(ben.judge_cha_state==1)
+							ben.line_array[ben.num_line_array++]=cut;
 						SelectObject(hdc,hPen);
 						if(Bullet::num_time_count==3)
 							SelectObject(hdc,pen_black);
@@ -454,12 +520,31 @@ void Game::update_bullet()
 					}
 				}
 			}
-			if(i<4) continue;
+			if(i<4) continue; // 与墙壁也没发生反射 激光直射至射程最大值
 			SelectObject(hdc,hPen);
-			if(Bullet::num_time_count==3)
-				SelectObject(hdc,pen_black);
 			MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
 			LineTo(hdc,line1_last.x,line1_last.y);
+			if(ben.judge_cha_state==1)
+			{	
+				ben.line_array[ben.num_line_array++]=line1_last;
+				if(Bullet::num_time_count==3)
+				{	
+					SelectObject(hdc,pen_black);
+					for(int i=0; i<ben.num_line_array-1; i++)
+					{
+						MoveToEx(hdc,ben.line_array[i].x,ben.line_array[i].y,NULL);
+						LineTo(hdc,ben.line_array[i+1].x,ben.line_array[i+1].y);
+					}
+					ben.num_line_array=0;
+				}
+			}
+			if(ben.judge_cha_state==0)
+			{
+				if(Bullet::num_time_count==3)
+					SelectObject(hdc,pen_black);
+				MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
+				LineTo(hdc,line1_last.x,line1_last.y);
+			}
 			::SelectObject(hdc,GetStockObject(DC_PEN));
 			::SelectObject(hdc,GetStockObject(DC_BRUSH));
 			break;
@@ -1032,6 +1117,8 @@ Charactor::Charactor() // 默认1号
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
+	memset(line_array,0,sizeof(line_array));
+	num_line_array=0;
 	mod=1;
 	name="Benzene";
 	num_bul=0;
@@ -1804,7 +1891,7 @@ void MENU_START::eventt()
 		gamestatus=2;
 	else
 		gamestatus=6;
-	new_data.store_data(empt);
+	new_data.fresh_data();
 	FSM::current=transition(gamestatus);
 	return;
 }
@@ -1910,7 +1997,7 @@ void ON_GAME::eventt()
 {
 	int gamestatus=3;
 	new_data.set_data(cyclooctane);
-	new_data.store_data(empt);
+	//new_data.fresh_data();
 	Game::clear();
 	while(1)  //  游戏循环执行
 	{
@@ -2018,23 +2105,57 @@ State* MENU_DEAD::transition(int x)
 }  
 void MENU_DEAD::eventt()
 {
-	printf("555");
-	if(_kbhit())
+	int gamestatus=4;
+	int tem_status=1;
+	Game::clear();
+	LPCTSTR str_restart=L"Restart";
+	LPCTSTR str_exit=L"Exit";
+	LPCTSTR str_title=L"You Died";
+	SetBkColor(hdc, RGB(0,0,0));
+	SetTextColor(hdc,RGB(255,255,255));
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,610,565,620,575);
+	while(1)	
 	{
-		char order1=_getch();
-		int order=5;
-		switch(order1)
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,500,200,str_title,8);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,640,530,str_restart,7);
+		TextOut(hdc,695,630,str_exit,4);
+		TextOut(hdc,695,630,str_exit,4);
+		if(_kbhit())
 		{
-		case 'w': order=1; break;
-		case 'e': order=2; break;
-		case 'r': order=3; break;
-		case 't': order=4; break;
-		case 'y': order=5; break;
-		case 'u': order=6; break;
+			char aaa=_getch();
+			if(aaa=='\r') break;
+			if(aaa=='s'||aaa=='w')
+			{
+				if(aaa=='w')
+					tem_status=tem_status>1?tem_status-1:2;
+				if(aaa=='s')
+					tem_status=tem_status<2?tem_status+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  
+				::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,610,565,620,575);
+				Ellipse(hdc,665,665,675,675);
+			}
 		}
-		FSM::current=transition(order);
+		::SetDCPenColor(hdc, RGB(255,0,0));  
+		::SetDCBrushColor(hdc,RGB(255,0,0)); 
+		if(tem_status==1)
+		{Ellipse(hdc,610,565,620,575);}
+		else if(tem_status==2)
+		{Ellipse(hdc,665,665,675,675);}
 	}
-	Sleep(50);
+	switch(tem_status)
+	{
+	case 1: gamestatus=1; break;
+	case 2: gamestatus=6; break;
+	}
+	Game::clear();
+	FSM::current=transition(gamestatus);
 } 
 
 State* EXIT::transition(int)  
@@ -2043,7 +2164,7 @@ State* EXIT::transition(int)
 }  
 void EXIT::eventt()
 {
-	new_data.store_data(empt);
+	new_data.fresh_data();
 	exit(0);
 } 
 
@@ -2064,17 +2185,9 @@ Data_Base::~Data_Base()
 }
 void Data_Base::fresh_data()
 {
-	co_ben.set_new_data();
-//	assert((co_obstacle == NULL));
-	co_obstacle = NULL;
-	co_square.pos_x=900;  co_square.pos_y=495;
-	co_square.angle=0.0;  co_square.init=pi/4.0;
-	co_square.new_room_point(co_square.pos_x,co_square.pos_y,co_square.angle,co_square.pos);
-	memset(co_monster,0,sizeof(co_monster));
-	co_death_count=0;
-	co_Bullet_num_time_count=0;
-	co_Monster_num_total=0;
-	co_num_monster_fresh=0;
+	empt.startup();
+	store_data(empt);
+	return;
 }
 void Data_Base::store_data(const Data_Base& a)
 {

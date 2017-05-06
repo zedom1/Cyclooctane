@@ -2,7 +2,6 @@
 #define MY_GAME
 
 #include<iostream>
-#include<algorithm>
 #include<string.h>
 #include<cmath>
 #include<string>
@@ -12,6 +11,7 @@
 #include <conio.h>
 #include <time.h>
 #include <assert.h>
+#include <tchar.h>
 using namespace std;
 // 游戏组成类
 struct Charactor; 
@@ -57,6 +57,7 @@ struct Vector
 	double x,y;
 public:
 	Vector(double x1, double y1);
+	Vector(POINT a, POINT b);
 	Vector(const Vector& a);
 	Vector() ;
 	Vector operator = (Vector a);
@@ -96,7 +97,8 @@ struct Charactor //角色
 	int judge_dir; // 判断此时的常态方向
 	Bullet *head,*last;
 	Bullet line,last_line;
-	int num_bul;
+	POINT line_array[100];
+	int num_bul,num_line_array;
 	double speed;
 	int range;
 	int life;
@@ -295,5 +297,6 @@ int get_j(double y);  // 该中心对应map的j值
 void quicksort(int first, int last , Node* a);
 bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);  // 线段相交判定并求交点（若有）
 void initi();  // 窗体初始化
+double point_to_line(POINT a, POINT head, POINT last); // 点到线段距离
 
 #endif
