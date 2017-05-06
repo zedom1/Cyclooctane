@@ -134,6 +134,7 @@ public:
 	POINT pos[10];
 	Node path;
 	static int num_total;
+	static int num_count;
 	void print_now(int x, int y, int num, POINT pos[]);
 	void new_point(int x, int y, int num, POINT pos[]);
 	void print_old(int x, int y, int num, POINT pos[]);
@@ -184,10 +185,11 @@ public:
 	Room();
 	Obstacle *obstacle;
 	Monster monster[500];
+	POINT door[5];
 	int time_count;
-	int old_door;
+	int rand_c;
 	void new_room();
-	void new_door();
+	void new_door(POINT door[], double angle);
 };
 
 struct Game
@@ -236,6 +238,7 @@ struct Data_Base
 	int co_Monster_num_total;
 	int co_num_monster_fresh;
 	int co_room_count;
+	int co_Monster_num_count;
 	~Data_Base();
 	Data_Base();
 	Data_Base(const Data_Base& a);

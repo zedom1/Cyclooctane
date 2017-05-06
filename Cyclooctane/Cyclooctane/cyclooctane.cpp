@@ -13,6 +13,7 @@ const double Obstacle::r=20.0;
 
 /////////// 变量 ////////////////
 int Bullet::num_time_count=0;
+int Monster::num_count=0;
 int Monster::num_total=0;
 int num_monster_fresh=0;
 
@@ -23,7 +24,7 @@ HANDLE hOut;
 CONSOLE_SCREEN_BUFFER_INFO bInfo;
 Vector temp_vector;
 HPEN hPen,pen_black,big_pen,big_black_pen; 
-HFONT hFont,hFont_title;
+HFONT hFont,hFont_title,hFont_sub_title;
 Game cyclooctane,empt;
 MENU_START s1;  
 MENU_CHA s2;  
@@ -38,11 +39,11 @@ Data_Base new_data;
 /////////// 全局函数 ////////////////
 void gotoxy(int x,int y)
 {
-	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD pos;
-	pos.X = x;
-	pos.Y = y;
-	SetConsoleCursorPosition(handle,pos);
+	COORD pos111;
+	pos111.X = x;
+	pos111.Y = y;
+	SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE),pos111);
+	SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE),0x01|0x05);
 }
 int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
 {
@@ -134,6 +135,10 @@ void initi()
 		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
 		FF_DECORATIVE, _T("方正姚体"));
 	hFont_title=CreateFont(160,60,0,0,FW_NORMAL,false,false,false,
+		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
+		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
+		FF_DECORATIVE, _T("微软雅黑"));
+	hFont_sub_title=CreateFont(40,15,0,0,FW_NORMAL,false,false,false,
 		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
 		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
 		FF_DECORATIVE, _T("微软雅黑"));
@@ -268,6 +273,7 @@ void Game::clear()
 void Game::show()
 {
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+	if(room.time_count>=100) return;
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 //	square.tester();
 //	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
@@ -284,6 +290,7 @@ void Game::print_new()
 }
 void Game::updateWithoutInput()
 {
+	room.time_count++;
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	Bullet::num_time_count++;
@@ -303,9 +310,10 @@ void Game::updateWithoutInput()
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
-		room.monster[Monster::num_total++].create_new_monster();
-		if(Monster::num_total>400)
-			Monster::num_total=0;
+		room.monster[Monster::num_count++].create_new_monster();
+		Monster::num_total++;
+		if(Monster::num_count>400)
+			Monster::num_count=0;
 	}
 	for(int i=0 ; i<400; i++)
 		if(room.monster[i].exist==true)
@@ -323,6 +331,8 @@ void Game::updateWithoutInput()
 			room.monster[i].pos_x+= tem.x*room.monster[i].speed;
 			room.monster[i].pos_y+= tem.y*room.monster[i].speed;
 			room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+			if(room.time_count>=100) 
+				room.monster[i].speed++;
 		}
 	update_bullet();
 	judge_coll_cha_to_mon();
@@ -337,6 +347,25 @@ void Game::updateWithoutInput()
 		if(room.obstacle[i].count>10)
 		{	room.obstacle[i].judge_show=!room.obstacle[i].judge_show;
 			room.obstacle[i].count=0;
+		}
+	}
+	if(room.time_count>=100) 
+	{	
+		Vector tem; double tem1;
+		room.new_door(room.door,square.angle);
+		if(judge_coll_single(ben.print_chara,7,room.door,5,tem,tem1)==true   )
+		{
+			memset(room.monster,0,sizeof(room.monster));
+			Monster::num_total=0;
+			Monster::num_count=0;
+			Game::clear();
+			room.new_room();
+			room_count++;
+			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
+			ben.pos_x=2*square.pos_x-ben.pos_x;
+			ben.pos_y=2*square.pos_y-ben.pos_y;
+			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+			room.time_count=0;
 		}
 	}
 }
@@ -373,6 +402,7 @@ void Game::update_bullet()
 								{	
 									room.monster[i].exist=false;
 									death_count++;
+									Monster::num_total--;
 								}
 								if(room.monster[i].exist!=false)
 									room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
@@ -430,6 +460,7 @@ void Game::update_bullet()
 							{	
 								room.monster[j].exist=false;
 								death_count++;
+								Monster::num_total--;
 							}
 							if(room.monster[j].exist!=false)
 								room.monster[j].print_now(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
@@ -469,6 +500,7 @@ void Game::update_bullet()
 							judge_coll_line(line1_head,line1_last,room.monster[j].pos[k],room.monster[j].pos[k+1],cut);
 							room.monster[j].print_old(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
 							room.monster[j].exist=false;
+							Monster::num_total--;
 							//printf("1111\n");
 							death_count++;
 							SelectObject(hdc,hPen);
@@ -568,6 +600,7 @@ void Game::updateWithInput()
 			ben.pos_x=old_x+ben.speed; 
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
 	}
+	if(room.time_count>=100) return;
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	square.judge_input(ben.speed*3.0/100.0,ben.judge_cha_state,ben.mod);
 	if(_kbhit()) 
@@ -580,11 +613,12 @@ void Game::updateWithInput()
 				if(ben.judge_cha_state==0)
 				{	
 					ben.judge_cha_state=1;
-					for(int i=0; i<Monster::num_total; i++)
+					for(int i=0; i<Monster::num_count; i++)
 					{	
 						if(room.monster[i].exist=false) continue; 
 						room.monster[i].exist=false;
 						death_count++;
+						Monster::num_total--;
 						room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 					}
 					ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
@@ -878,6 +912,7 @@ void Game::judge_coll_mon_to_wall()
 			{	
 				room.monster[i].exist=false;
 				death_count++;
+				Monster::num_total--;
 				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
 		}
@@ -972,6 +1007,8 @@ void Game::judge_coll_mon_to_obstacle()
 					{	
 						room.monster[i].exist=false;
 						death_count++;
+						Monster::num_total--;
+
 					}
 					if(room.monster[i].exist!=false)
 						room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
@@ -980,7 +1017,7 @@ void Game::judge_coll_mon_to_obstacle()
 }
 void Game::get_path(double x ,double  y, Node &path)
 {
-/*//  特判 若怪物到人路径上无障碍物， 则直线走
+//  特判 若怪物到人路径上无障碍物， 则直线走
 	{
 		double k=(ben.pos_y-y)/(ben.pos_x-x);
 		double b=y-k*x;
@@ -1012,7 +1049,7 @@ void Game::get_path(double x ,double  y, Node &path)
 			return; 
 		}
 	}
-	return;*/
+	return;
 	double aim_x=normalize_x(ben.pos_x),aim_y=normalize_y(ben.pos_y);
 	Node OPEN[1000],CLOSE[1000];
 	memset(OPEN,0,sizeof(OPEN));
@@ -1112,11 +1149,32 @@ Room::Room()
 	if(obstacle!=NULL)
 		delete []obstacle;
 	obstacle=new Obstacle[5];
-	old_door=-1;
+	rand_c=rand()%4;
 }
-void Room::new_door()
+void Room::new_door(POINT door[], double angle)
 {
-
+	int squ_x=900,squ_y=495;
+	double r1=sqrt(375*375*2),r2=sqrt(350*350*2);
+	double x1=(sin(pi/4.0)/sin(5.0/8.0*pi))*r1-10,x2=(sin(pi/4.0)/sin(5.0/8.0*pi))*r2-10;
+	double rand_angle=pi/2*rand_c;
+	POINT door11[]=
+	{
+		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle),
+		squ_x+x1*cos(3.0/8.0*pi-pi/110.0+rand_angle+pi/4.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle)-1,
+		squ_x+x2*cos(3.0/8.0*pi+rand_angle+pi/4.0+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle),
+		squ_x+x2*cos(3.0/8.0*pi+rand_angle+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+angle),
+		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle)
+	};
+	for(int i=0; i<5; i++)
+	{
+		door[i].x=door11[i].x;
+		door[i].y=door11[i].y;
+	}
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	::SetDCPenColor(hdc, RGB(255,0,0));
+	::SetDCBrushColor(hdc,RGB(255,0,0));
+	Polygon(hdc,door ,5);
 }
 void Room::new_room()
 {
@@ -1124,7 +1182,7 @@ void Room::new_room()
 		delete []obstacle;
 	obstacle=new Obstacle[5];
 	time_count=50;
-	old_door=-1;
+	rand_c=rand()%4;
 }
 
 
@@ -1872,6 +1930,7 @@ void MENU_START::eventt()
 	LPCTSTR str_exit=L"Exit";
 	LPCTSTR str_load=L"Load";
 	LPCTSTR str_title=L"Cyclooctane";
+	LPCTSTR str_sub_title=L"----Who's the Hunter Now?";
 	int gamestatus=1;
 	::SetDCPenColor(hdc, RGB(123,123,123));  //灰色
 	::SetDCBrushColor(hdc,RGB(123,123,123)); //灰色
@@ -1884,6 +1943,8 @@ void MENU_START::eventt()
 		SelectObject(hdc,hFont_title);
 		TextOut(hdc,380,200,str_title,11);
 		TextOut(hdc,380,200,str_title,11);
+		SelectObject(hdc,hFont_sub_title);
+		TextOut(hdc,850,380,str_sub_title,25);
 		SelectObject(hdc,hFont);
 		TextOut(hdc,665,500,str_start,5);
 		TextOut(hdc,665,600,str_load,4);
@@ -2355,6 +2416,7 @@ void Data_Base::store_data(const Data_Base& a)
 	co_room_count=a.co_room_count;
 	co_Bullet_num_time_count=a.co_Bullet_num_time_count;
 	co_Monster_num_total=a.co_Monster_num_total;
+	co_Monster_num_count=a.co_Monster_num_count;
 	co_num_monster_fresh=a.co_num_monster_fresh;
 	co_square=a.co_square;
 	co_room=a.co_room;
@@ -2370,6 +2432,7 @@ void Data_Base::store_data(const Game& b)
 	co_room_count=b.room_count;
 	co_Bullet_num_time_count=Bullet::num_time_count;
 	co_Monster_num_total=Monster::num_total;
+	co_Monster_num_count=Monster::num_count;
 	co_num_monster_fresh=num_monster_fresh;
 	return;
 }
@@ -2382,6 +2445,7 @@ void Data_Base::set_data(Game& a)
 	a.death_count=co_death_count;
 	Bullet::num_time_count=co_Bullet_num_time_count;
 	Monster::num_total=co_Monster_num_total;
+	Monster::num_count=co_Monster_num_count;
 	num_monster_fresh=co_num_monster_fresh;
 	return;
 }
@@ -2397,5 +2461,5 @@ void Data_Base::write_data()
 /////////// FSM ////////////////
 void FSM::reset()  
 {  
-    current = &s7;  
+    current = &s1;  
 } 
