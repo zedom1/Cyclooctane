@@ -114,6 +114,105 @@ double point_to_line(POINT a, POINT head, POINT last)
 	double xita=head_a.dotmulti(head_last)/(head_last.get_lenth()*head_a.get_lenth());
 	return head_a.get_lenth()*sqrt(1-xita*xita);
 }
+bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector& shadow, double& num_move)
+{
+	double min_move=MAX_DOUBLE;
+	int flag=0;
+	for(int i=0; i<num_first; i++)   // 求第一个图形的各个投影轴
+	{
+		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
+		int j=i+1;
+		Vector *v1=new Vector( first[i].x,first[i].y);
+		Vector *v2=new Vector( first[j].x,first[j].y);
+		Vector edge(*v1-*v2);  // 得到第一个图形的一条边向量
+		edge.vertical();  // 求得边的垂直向量作为投影轴
+		edge.new_normalize();   // 计算投影轴的单位向量
+
+		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图图形的最大及最小投影值
+		{
+			Vector tem(first[k].x,first[k].y);
+			double tot=tem.dotmulti(edge);
+			maxn_first=max(tot,maxn_first);
+			minx_first=min(tot,minx_first);		
+		}
+		for(int k=0; k<num_second; k++)
+		{
+			Vector tem(second[k].x,second[k].y);
+			double tot=tem.dotmulti(edge);
+			maxn_second=max(tot,maxn_second);
+			minx_second=min(tot,minx_second);
+		}
+		if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
+		{	flag=1; break; }
+		if(minx_second<=maxn_first)
+		{
+			if(abs(min_move)>=abs(minx_second-maxn_first))
+			{	
+				shadow=edge;
+				min_move=abs(minx_second-maxn_first);
+			}
+		}
+		else if(minx_first<=maxn_second)
+		{
+			if(abs(min_move)>=abs(minx_first-maxn_second))
+			{	
+				shadow=edge;
+				min_move=abs(minx_first-maxn_second);
+			}
+		}
+	}
+	if(flag==1)
+		return false;  // false代表没有发生碰撞
+	for(int i=0; i<num_second; i++)   // 求第二个图形的各个投影轴
+	{
+		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
+		int j=i+1;
+		Vector *v1=new Vector( second[i].x,second[i].y);
+		Vector *v2=new Vector( second[j].x,second[j].y);
+		Vector edge(*v1-*v2);  // 得到第二个图形的一条边向量
+		edge.vertical();  // 求得边的垂直向量作为投影轴
+		edge.new_normalize();   // 计算投影轴的单位向量
+
+		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图形的最大及最小投影值
+		{
+			Vector tem(first[k].x,first[k].y);
+			double tot=tem.dotmulti(edge);
+			maxn_first=max(tot,maxn_first);
+			minx_first=min(tot,minx_first);
+		}
+		for(int k=0; k<num_second; k++)
+		{
+			Vector tem(second[k].x,second[k].y);
+			double tot=tem.dotmulti(edge);
+			maxn_second=max(tot,maxn_second);
+			minx_second=min(tot,minx_second);
+		}
+		if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
+		{	flag=1; break; }
+		if(minx_second<=maxn_first)
+		{
+			if(abs(min_move)>=abs(minx_second-maxn_first))
+			{	
+				shadow=edge;
+				min_move=abs(minx_second-maxn_first);
+			}
+		}
+		else if(minx_first<=maxn_second)
+		{
+			if(abs(min_move)>=abs(minx_first-maxn_second))
+			{	
+				shadow=edge;
+				min_move=abs(minx_first-maxn_second);
+			}
+		}
+	}
+	if(flag==1)
+		return false;  // false代表没有发生碰撞
+	num_move=min_move;
+	return true;  //true代表发生了碰撞
+}
 void initi()
 {
 	srand(time(0));
@@ -259,7 +358,7 @@ void Game::startup()
 				Game::map[xx][yy].gx=MAX_INT/1000;
 	}*/
 	death_count=0;
-	room.new_room();
+	room.new_room(room_count);
 	room_count=0;
 }
 void Game::clear()
@@ -273,7 +372,7 @@ void Game::clear()
 void Game::show()
 {
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-	if(room.time_count>=100) return;
+	if(room.time_count>=room.time_max) return;
 	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 //	square.tester();
 //	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
@@ -331,25 +430,28 @@ void Game::updateWithoutInput()
 			room.monster[i].pos_x+= tem.x*room.monster[i].speed;
 			room.monster[i].pos_y+= tem.y*room.monster[i].speed;
 			room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
-			if(room.time_count>=100) 
+			if(room.time_count>=room.time_max) 
 				room.monster[i].speed++;
 		}
 	update_bullet();
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
 	judge_coll_chara_to_wall();
+	judge_coll_cha_to_corner();
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
-	for(int i=0; i<5; i++)
+	for(int i=0; i<room.num_stab; i++)
 	{	
-		room.obstacle[i].count++;
-		room.obstacle[i].print_now(square.angle);
-		if(room.obstacle[i].count>10)
-		{	room.obstacle[i].judge_show=!room.obstacle[i].judge_show;
-			room.obstacle[i].count=0;
+		room.stab[i].count++;
+		room.stab[i].print_now(square.angle);
+		if(room.stab[i].count>room.stab[i].count_max)
+		{	room.stab[i].judge_show=!room.stab[i].judge_show;
+			room.stab[i].count=0;
 		}
 	}
-	if(room.time_count>=100) 
+	for(int i=0; i<room.num_stone; i++)
+		room.stone[i].print_now(square.angle);
+	if(room.time_count>=room.time_max) 
 	{	
 		Vector tem; double tem1;
 		room.new_door(room.door,square.angle);
@@ -359,7 +461,7 @@ void Game::updateWithoutInput()
 			Monster::num_total=0;
 			Monster::num_count=0;
 			Game::clear();
-			room.new_room();
+			room.new_room(room_count);
 			room_count++;
 			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 			ben.pos_x=2*square.pos_x-ben.pos_x;
@@ -600,7 +702,7 @@ void Game::updateWithInput()
 			ben.pos_x=old_x+ben.speed; 
 		ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);	
 	}
-	if(room.time_count>=100) return;
+	if(room.time_count>=room.time_max) return;
 	ben.print_round_new(ben.pos_x, ben.pos_y,ben.print_chara);
 	square.judge_input(ben.speed*3.0/100.0,ben.judge_cha_state,ben.mod);
 	if(_kbhit()) 
@@ -686,105 +788,6 @@ void Game::judge_bullet(int start, int end, POINT pos[], double x, double y, dou
 			return;
 		}
 	}
-}
-bool Game::judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector& shadow, double& num_move)
-{
-	double min_move=MAX_DOUBLE;
-	int flag=0;
-	for(int i=0; i<num_first; i++)   // 求第一个图形的各个投影轴
-	{
-		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
-		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
-		int j=i+1;
-		Vector *v1=new Vector( first[i].x,first[i].y);
-		Vector *v2=new Vector( first[j].x,first[j].y);
-		Vector edge(*v1-*v2);  // 得到第一个图形的一条边向量
-		edge.vertical();  // 求得边的垂直向量作为投影轴
-		edge.new_normalize();   // 计算投影轴的单位向量
-
-		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图图形的最大及最小投影值
-		{
-			Vector tem(first[k].x,first[k].y);
-			double tot=tem.dotmulti(edge);
-			maxn_first=max(tot,maxn_first);
-			minx_first=min(tot,minx_first);		
-		}
-		for(int k=0; k<num_second; k++)
-		{
-			Vector tem(second[k].x,second[k].y);
-			double tot=tem.dotmulti(edge);
-			maxn_second=max(tot,maxn_second);
-			minx_second=min(tot,minx_second);
-		}
-		if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
-		{	flag=1; break; }
-		if(minx_second<=maxn_first)
-		{
-			if(abs(min_move)>=abs(minx_second-maxn_first))
-			{	
-				shadow=edge;
-				min_move=abs(minx_second-maxn_first);
-			}
-		}
-		else if(minx_first<=maxn_second)
-		{
-			if(abs(min_move)>=abs(minx_first-maxn_second))
-			{	
-				shadow=edge;
-				min_move=abs(minx_first-maxn_second);
-			}
-		}
-	}
-	if(flag==1)
-		return false;  // false代表没有发生碰撞
-	for(int i=0; i<num_second; i++)   // 求第二个图形的各个投影轴
-	{
-		double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
-		double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
-		int j=i+1;
-		Vector *v1=new Vector( second[i].x,second[i].y);
-		Vector *v2=new Vector( second[j].x,second[j].y);
-		Vector edge(*v1-*v2);  // 得到第二个图形的一条边向量
-		edge.vertical();  // 求得边的垂直向量作为投影轴
-		edge.new_normalize();   // 计算投影轴的单位向量
-
-		for(int k=0; k<num_first; k++)    // 在该投影轴下第一个图形的最大及最小投影值
-		{
-			Vector tem(first[k].x,first[k].y);
-			double tot=tem.dotmulti(edge);
-			maxn_first=max(tot,maxn_first);
-			minx_first=min(tot,minx_first);
-		}
-		for(int k=0; k<num_second; k++)
-		{
-			Vector tem(second[k].x,second[k].y);
-			double tot=tem.dotmulti(edge);
-			maxn_second=max(tot,maxn_second);
-			minx_second=min(tot,minx_second);
-		}
-		if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
-		{	flag=1; break; }
-		if(minx_second<=maxn_first)
-		{
-			if(abs(min_move)>=abs(minx_second-maxn_first))
-			{	
-				shadow=edge;
-				min_move=abs(minx_second-maxn_first);
-			}
-		}
-		else if(minx_first<=maxn_second)
-		{
-			if(abs(min_move)>=abs(minx_first-maxn_second))
-			{	
-				shadow=edge;
-				min_move=abs(minx_first-maxn_second);
-			}
-		}
-	}
-	if(flag==1)
-		return false;  // false代表没有发生碰撞
-	num_move=min_move;
-	return true;  //true代表发生了碰撞
 }
 bool Game::judge_coll_chara_to_wall()
 {
@@ -973,9 +976,16 @@ void Game::judge_coll_corner(double& pos_x,double& pos_y, POINT second[], int nu
 }
 void Game::judge_coll_cha_to_corner()
 {
-	ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-	judge_coll_corner(ben.pos_x, ben.pos_y, square.corner,4,square.pos_x,square.pos_y);
-	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+	Vector shadow;
+	double num_move=0;
+	for(int i=0; i<room.num_stone; i++)
+		if(judge_coll_single(ben.print_chara,7,room.stone[i].pos,5,shadow,num_move)==true)
+		{	
+			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
+			ben.pos_x-=shadow.x*(num_move);
+			ben.pos_y-=shadow.y*(num_move);
+			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		}
 	return;
 }
 void Game::judge_coll_mon_to_corner(int i)
@@ -989,31 +999,36 @@ void Game::judge_coll_mon_to_obstacle()
 {
 	Vector shadow; double num_move;
 	for(int i=0; i<400; i++)
-		if(room.monster[i].exist==true)
-			for(int j=0; j<5; j++)
-			{
-				if(room.obstacle[j].judge_show==false) continue;
-				POINT tem[]={
-					room.obstacle[j].pos_x-Obstacle::r,room.obstacle[j].pos_y-Obstacle::r,
-					room.obstacle[j].pos_x-Obstacle::r,room.obstacle[j].pos_y+Obstacle::r,
-					room.obstacle[j].pos_x+Obstacle::r,room.obstacle[j].pos_y+Obstacle::r,
-					room.obstacle[j].pos_x+Obstacle::r,room.obstacle[j].pos_y-Obstacle::r
-				};
-				if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge, tem ,4,shadow,num_move)==true)
+	{	
+		if(room.monster[i].exist==false) continue;
+		for(int j=0; j<room.num_stab; j++)
+		{
+			if(room.stab[j].judge_show==false) continue;
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge, room.stab[j].pos ,5,shadow,num_move)==true)
+			{	
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].num_edge--;
+				if(room.monster[i].num_edge<3)
 				{	
-					room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
-					room.monster[i].num_edge--;
-					if(room.monster[i].num_edge<3)
-					{	
-						room.monster[i].exist=false;
-						death_count++;
-						Monster::num_total--;
-
-					}
-					if(room.monster[i].exist!=false)
-						room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+					room.monster[i].exist=false;
+					death_count++;
+					Monster::num_total--;
 				}
+				if(room.monster[i].exist!=false)
+					room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
+		}
+		for(int j=0; j<room.num_stone; j++)
+		{
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge, room.stone[j].pos ,5,shadow,num_move)==true)
+			{	
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*(num_move+5);
+				room.monster[i].pos_y-=shadow.y*(num_move+5);
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+			}
+		}
+	}
 }
 void Game::get_path(double x ,double  y, Node &path)
 {
@@ -1026,16 +1041,16 @@ void Game::get_path(double x ,double  y, Node &path)
 		{
 			if(abs(ben.pos_x-x)<5)
 			{
-				if(room.obstacle[i].pos_x<= x+Obstacle::r/2 &&room.obstacle[i].pos_x>= x-Obstacle::r/2 && room.obstacle[i].pos_y<=max(y,ben.pos_y)  &&room.obstacle[i].pos_y>=min(y,ben.pos_y) )
+				if(room.stab[i].pos_x<= x+Obstacle::r/2 &&room.stab[i].pos_x>= x-Obstacle::r/2 && room.stab[i].pos_y<=max(y,ben.pos_y)  &&room.stab[i].pos_y>=min(y,ben.pos_y) )
 					break;//障碍物位于两者之间
 			}
 			if(abs(ben.pos_y-y)<5)
 			{
-				if(room.obstacle[i].pos_y<= y+Obstacle::r/2 &&room.obstacle[i].pos_y>= y-Obstacle::r/2 && room.obstacle[i].pos_x<=max(x,ben.pos_x)  &&room.obstacle[i].pos_x>=min(x,ben.pos_x) )
+				if(room.stab[i].pos_y<= y+Obstacle::r/2 &&room.stab[i].pos_y>= y-Obstacle::r/2 && room.stab[i].pos_x<=max(x,ben.pos_x)  &&room.stab[i].pos_x>=min(x,ben.pos_x) )
 					break;//障碍物位于两者之间
 			}
-			double dis=abs(k*room.obstacle[i].pos_x-room.obstacle[i].pos_y+b)/(k*k+1);
-			double x1=( 1/k*room.obstacle[i].pos_x+room.obstacle[i].pos_y-b )/(k+1/k);
+			double dis=abs(k*room.stab[i].pos_x-room.stab[i].pos_y+b)/(k*k+1);
+			double x1=( 1/k*room.stab[i].pos_x+room.stab[i].pos_y-b )/(k+1/k);
 			double y1=k*x1+b;
 			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(ben.pos_x,x)))  ) && ( x1<=max(ben.pos_x,x))) ) 
 			{
@@ -1146,11 +1161,9 @@ void Game::get_path(double x ,double  y, Node &path)
 //////////// Room ////////////////
 Room::Room()
 {
-	if(obstacle!=NULL)
-		delete []obstacle;
-	obstacle=new Obstacle[5];
-	rand_c=rand()%4;
+	new_room(0);
 }
+Room::~Room(){}
 void Room::new_door(POINT door[], double angle)
 {
 	int squ_x=900,squ_y=495;
@@ -1176,15 +1189,42 @@ void Room::new_door(POINT door[], double angle)
 	::SetDCBrushColor(hdc,RGB(255,0,0));
 	Polygon(hdc,door ,5);
 }
-void Room::new_room()
+void Room::new_room(int a)
 {
-	if(obstacle!=NULL)
-		delete []obstacle;
-	obstacle=new Obstacle[5];
-	time_count=50;
+	if(stab!=NULL)
+		delete []stab;
+	num_stab=rand()%4+3;
+	stab=new Stab[num_stab];
+	if(stone!=NULL)
+		delete []stone;
+	num_stone=rand()%4+3;
+	stone=new Stone[num_stone];
+	time_count=0;
 	rand_c=rand()%4;
+	time_max=200+a*20+(rand()%2-1)*40;
+	for(int i=0; i<num_stab; i++)
+	{
+		for(int j=0; j<num_stab; j++)
+		{
+			if(i==j) continue;
+			if( ((stab[i].pos_x-stab[j].pos_x)*(stab[i].pos_x-stab[j].pos_x)+(stab[i].pos_y-stab[j].pos_y)*(stab[i].pos_y-stab[j].pos_y))  <=3200  )
+				stab[i].reset();
+		}
+		for(int j=0; j<num_stone; j++)
+			if( ((stab[i].pos_x-stone[j].pos_x)*(stab[i].pos_x-stone[j].pos_x)+(stab[i].pos_y-stone[j].pos_y)*(stab[i].pos_y-stone[j].pos_y))  <=3200  )
+				stone[j].reset();
+	}
+	for(int i=0 ; i<num_stone; i++)
+	{
+		for(int j=0; j<num_stone; j++)
+		{
+			if(i==j) continue;
+			if( ((stone[i].pos_x-stone[j].pos_x)*(stone[i].pos_x-stone[j].pos_x)+(stone[i].pos_y-stone[j].pos_y)*(stone[i].pos_y-stone[j].pos_y))  <=3200  )
+				stone[i].reset();
+		}
+	}
+	
 }
-
 
 /////////// Charactor ////////////////
 Charactor::Charactor() // 默认1号
@@ -1841,7 +1881,22 @@ void Obstacle::print_old()
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
 	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
 }
-void Obstacle::print_now(double angle)
+void Obstacle::new_center(double angle)
+{
+	pos_x=900+dis*(cosf(angle+init));
+	pos_y=495-dis*(sinf(angle+init));
+	new_point();
+}
+Obstacle::Obstacle()
+{
+	
+}
+
+Stab::Stab()
+{
+	reset();
+}
+void Stab::print_now(double angle)
 {
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
@@ -1852,7 +1907,15 @@ void Obstacle::print_now(double angle)
 	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
 	new_point();
 }
-void Obstacle::new_point()
+Stab::Stab(double x, double y)
+{
+	pos_x=x; pos_y=y;
+	count=rand()%5;
+	new_point();
+	Vector a(900-pos_x,495-pos_y);
+	init=acosf( (a.x-1) / a.get_lenth());
+}
+void Stab::new_point()
 {
 	if(judge_show==false) return;
 	int tot=0;
@@ -1870,24 +1933,80 @@ void Obstacle::new_point()
 	}
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	POINT edge1[]=
+	{
+		pos_x-r,pos_y-r,pos_x-r,pos_y+r,pos_x+r,pos_y+r,pos_x+r,pos_y-r,pos_x-r,pos_y-r
+	};
+	for(int i=0; i<5; i++)
+	{
+		pos[i].x=edge1[i].x;pos[i].y=edge1[i].y;
+	}
+	
 }
-void Obstacle::new_center(double angle)
+void Stab::reset()
 {
-	pos_x=900+dis*(cosf(angle+init));
-	pos_y=495-dis*(sinf(angle+init));
-}
-Obstacle::Obstacle(double x, double y)
-	:pos_x(x),pos_y(y)
-{
+	judge_show=true;
 	count=rand()%5;
+	count_max=rand()%7+3;
+	int c=rand()%3;
+	if(c==2) count_max=MAX_INT;
+	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
+	pos_x=rand1*rand()%300+900;   // 900 495
+	pos_y=rand2*rand()%300+495;
+	new_point();
+	Vector a(pos_x-900,495-pos_y);
+	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
+	if(abs(tem)<1e-6)  init=0;
+	else
+	{
+		init=asinf((495-pos_y)/tem);
+		if((pos_x-900)>1e-6)
+		{
+			if((495-pos_y)>1e-6) init=init;
+			else init=init+pi2;
+		}
+		else
+			init=pi-init;
+	}
+	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
+}
+
+Stone::Stone()
+{
+	reset();
+}
+Stone::Stone(double x, double y)
+{
+	pos_x=x; pos_y=y;
 	new_point();
 	Vector a(900-pos_x,495-pos_y);
 	init=acosf( (a.x-1) / a.get_lenth());
 }
-Obstacle::Obstacle()
+void Stone::new_point()
 {
-	judge_show=true;
-	count=rand()%5;
+	POINT edge1[]=
+	{
+		pos_x-r,pos_y-r,pos_x-r,pos_y+r,pos_x+r,pos_y+r,pos_x+r,pos_y-r,pos_x-r,pos_y-r
+	};
+	for(int i=0; i<5; i++)
+	{
+		pos[i].x=edge1[i].x;pos[i].y=edge1[i].y;
+	}
+	return;
+}
+void Stone::print_now(double angle)
+{
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	print_old();
+	new_center(angle);
+	::SetDCPenColor(hdc, RGB(199,97,20));  
+	::SetDCBrushColor(hdc,RGB(199,97,20)); 
+	Rectangle(hdc,pos_x-r,pos_y-r,pos_x+r,pos_y+r );
+	new_point();
+}
+void Stone::reset()
+{
 	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
 	pos_x=rand1*rand()%300+900;   // 900 495
 	pos_y=rand2*rand()%300+495;
@@ -2462,4 +2581,4 @@ void Data_Base::write_data()
 void FSM::reset()  
 {  
     current = &s1;  
-} 
+}

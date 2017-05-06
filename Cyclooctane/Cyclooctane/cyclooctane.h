@@ -22,6 +22,8 @@ struct Vector;
 struct Charactor; 
 struct Monster; 
 struct Obstacle; 
+struct Stab;
+struct Stone;
 struct Bullet;  
 struct Square;
 struct Room; 
@@ -143,20 +145,36 @@ public:
 
 struct Obstacle // 障碍
 {
-	double pos_x,pos_y;
-	double speed;
-	bool judge_show;
-	double init,dis;
-	int count;
-	POINT stab[7];
 public:
+	double pos_x,pos_y;//该障碍物的位置
+	double init,dis;//与房间中心的初始角度和距离 (极坐标)
+	POINT pos[5];
 	Obstacle();
-	Obstacle(double x, double y);
 	static const double r;
-	void print_now(double angle);
+	
 	void print_old();
-	void new_point();
+	virtual void new_point()=0;
 	void new_center(double angle);
+};
+struct Stab:public Obstacle
+{
+	int count;// 地刺型障碍物的计时器
+	POINT stab[7];// 地刺型障碍物的刺坐标数组
+	bool judge_show;// 地刺型障碍判断是否会造成伤害
+	int count_max;
+	virtual void new_point();
+	void print_now(double angle);
+	void reset();
+	Stab();
+	Stab(double x, double y);
+};
+struct Stone:public Obstacle
+{
+	virtual void new_point();
+	Stone();
+	Stone(double x, double y);
+	void reset();
+	void print_now(double angle);
 };
 
 struct Square
@@ -164,8 +182,6 @@ struct Square
 public:
 	double pos_x,pos_y;   // 中心坐标
 	double angle,init;   //init为初始角度 ,angle为变化角度
-	int num_com,num_go; //door
-	//Obstacle *obstacle;
 	POINT pos[10];
 	POINT edge1[5],edge2[5],edge3[5],edge4[5];
 	POINT teleport[4][2];
@@ -175,7 +191,6 @@ public:
 	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle); // 画新房间
 	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle); //抹去旧房间
 	virtual void judge_input(double speed,int judge_cha_state,int mod);   // 根据输入更新角度
-
 //	void tester();
 };
 
@@ -183,13 +198,17 @@ struct Room  // 房间
 {
 public:
 	Room();
-	Obstacle *obstacle;
+	~Room();
+	Stab *stab;
+	Stone *stone;
 	Monster monster[500];
 	POINT door[5];
-	int time_count;
-	int rand_c;
-	void new_room();
-	void new_door(POINT door[], double angle);
+	int num_stab,num_stone;
+	int time_count;  // 计时 时间一到开门，人物失去攻击能力
+	int rand_c;   //　与门位置相关的随机数
+	int time_max;//　时间上限，每个房间随机生成，但总体随闯关进行而上升
+	void new_room(int a);// 新房间
+	void new_door(POINT door[], double angle);// 生成并画门
 };
 
 struct Game
@@ -197,9 +216,7 @@ struct Game
 	Charactor ben;
 	Room room;
 	Node map[45][45];
-	//Obstacle *obstacle;
 	Square square;
-	//Monster monster[500];
 	int death_count;
 	int room_count;
 	friend struct Data_Base;
@@ -212,7 +229,7 @@ public:
 	static void clear();
 	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita);
 	void update_bullet();
-	bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 动态墙壁与人的碰撞检测
+	
 	bool judge_coll_chara_to_wall();
 	void print_new();
 	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
@@ -229,10 +246,8 @@ public:
 struct Data_Base
 {
 	Charactor co_ben;
-	//Obstacle *co_obstacle;
 	Square co_square;
 	Room co_room;
-	//Monster co_monster[500];
 	int co_death_count;
 	int co_Bullet_num_time_count;
 	int co_Monster_num_total;
@@ -314,5 +329,5 @@ void quicksort(int first, int last , Node* a);
 bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);  // 线段相交判定并求交点（若有）
 void initi();  // 窗体初始化
 double point_to_line(POINT a, POINT head, POINT last); // 点到线段距离
-
+bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 碰撞检测
 #endif
