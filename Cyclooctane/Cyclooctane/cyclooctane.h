@@ -2,9 +2,9 @@
 #define MY_GAME
 
 #include<iostream>
-#include<string.h>
 #include<cmath>
 #include<string>
+#include<string.h>
 #include<stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -13,6 +13,11 @@
 #include <assert.h>
 #include <tchar.h>
 using namespace std;
+
+// 基础类
+struct Node;
+struct Vector;
+
 // 游戏组成类
 struct Charactor; 
 struct Monster; 
@@ -33,10 +38,7 @@ struct ON_GAME;
 struct MENU_PAUSE;
 struct MENU_DEAD;
 struct EXIT;
-
-// 基础类
-struct Node;
-struct Vector;
+struct MENU_CHANGE;
 
 
 struct Node
@@ -101,7 +103,7 @@ struct Charactor //角色
 	int num_bul,num_line_array;
 	double speed;
 	int range;
-	int life;
+	int life,life_now;
 	POINT print_chara[14];
 	int mod;
 	int num_count[3];
@@ -159,11 +161,15 @@ public:
 struct Room  // 房间
 {
 public:
-	//Room();
-	//~Room();
-	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[])=0;
-	virtual void paint_room_new(double pos_x, double pos_y, POINT pos[], double angle)=0;
-	virtual void paint_room_old(double pos_x, double pos_y, POINT pos[],double angle)=0;
+	Room();
+	~Room();
+	Obstacle *obstacle;
+	Square square;
+	Monster monster[500];
+	int time_count;
+	int old_door;
+	void new_room();
+	void new_door();
 };
 
 struct Square
@@ -189,12 +195,10 @@ public:
 struct Game
 {
 	Charactor ben;
-	Obstacle *obstacle;
-//	Room *room;
-	Square square;
-	Monster monster[500];
+	Room room;
 	Node map[45][45];
 	int death_count;
+	int room_count;
 	friend struct Data_Base;
 public:
 	Game();
@@ -229,6 +233,7 @@ struct Data_Base
 	int co_Bullet_num_time_count;
 	int co_Monster_num_total;
 	int co_num_monster_fresh;
+	int co_room_count;
 	~Data_Base();
 	Data_Base();
 	Data_Base(const Data_Base& a);
@@ -277,6 +282,12 @@ struct MENU_DEAD:public State
 };  
 
 struct EXIT:public State  
+{
+    State* transition(int);  
+	void eventt();
+};  
+
+struct CHANGE:public State  
 {
     State* transition(int);  
 	void eventt();

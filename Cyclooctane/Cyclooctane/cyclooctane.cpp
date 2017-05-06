@@ -31,8 +31,10 @@ ON_GAME s3;
 MENU_PAUSE s4;  
 MENU_DEAD s5;  
 EXIT s6;
+CHANGE s7;
 State* FSM::current=NULL; 
 Data_Base new_data;
+
 /////////// 全局函数 ////////////////
 void gotoxy(int x,int y)
 {
@@ -135,6 +137,7 @@ void initi()
 		CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
 		CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
 		FF_DECORATIVE, _T("微软雅黑"));
+	FSM::reset();
 }
 
 /////////// Node ////////////////
@@ -232,7 +235,7 @@ Vector Vector::operator / (double a)
 Game::Game()
 {
 	death_count=0;
-	obstacle=new Obstacle[5];
+	room_count=0;
 }
 void Game::startup()
 {
@@ -338,8 +341,6 @@ void Game::updateWithoutInput()
 			obstacle[i].count=0;
 		}
 	}
-	
-
 }
 void Game::update_bullet()
 {
@@ -1107,6 +1108,31 @@ void Game::get_path(double x ,double  y, Node &path)
 	return;
 }
 
+//////////// Room ////////////////
+Room::Room()
+{
+	obstacle=new Obstacle[5];
+	old_door=-1;
+}
+Room::~Room()
+{
+	if(obstacle)
+		delete []obstacle;
+	obstacle=NULL;
+}
+void Room::new_door()
+{
+
+}
+void Room::new_room()
+{
+	if(obstacle)
+		delete []obstacle;
+	obstacle=new Obstacle[5];
+
+}
+
+
 /////////// Charactor ////////////////
 Charactor::Charactor() // 默认1号
 {
@@ -1126,6 +1152,7 @@ Charactor::Charactor() // 默认1号
 	last=head;
 	head->nex=NULL;
 	range=10;
+	life_now=life=10;
 }
 void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 {
@@ -1458,7 +1485,7 @@ void Charactor::set_new_data()
 	pos_x=1100; 
 	pos_y=680;
 	speed=10;
-	life=10;
+	life_now=life=10;
 	judge_cha_state=false;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
@@ -1481,7 +1508,7 @@ void Charactor::set_new_data()
 	if(mod==3)
 	{
 		name="Pyran";
-		range=20;
+		range=40;
 	}
 }
 
@@ -2168,6 +2195,147 @@ void EXIT::eventt()
 	exit(0);
 } 
 
+State* CHANGE::transition(int x)  
+{  
+    switch(x)  
+    {  
+        case 3:  
+            return &s3;    
+        default:  
+            return &s7;  
+    }  
+}  
+void CHANGE::eventt()
+{
+	new_data.store_data(cyclooctane);
+	SelectObject(hdc,hFont);
+	LPCTSTR str_ben=L"Benzene";
+	LPCTSTR str_cyc=L"Cyclohexadiene";
+	LPCTSTR str_pyran=L"Pyran";
+	LPCTSTR str_title=L"Update";
+	int gamestatus=7;
+	int tem_mod=1;
+	::SetDCPenColor(hdc, RGB(255,0,0));  
+	::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	Ellipse(hdc,310,790,325,800);
+	while(1)	
+	{
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,530,150,str_title,6); TextOut(hdc,530,150,str_title,6);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,200,700,str_ben,7);TextOut(hdc,550,700,str_cyc,14);
+		TextOut(hdc,1120,700,str_pyran,5);TextOut(hdc,1120,700,str_pyran,5);
+		cyclooctane.ben.mod=1;
+		cyclooctane.ben.print_cha_new(320,620,cyclooctane.ben.print_chara);
+		cyclooctane.ben.mod=2;
+		cyclooctane.ben.print_cha_new(770,620,cyclooctane.ben.print_chara);
+		cyclooctane.ben.mod=3;
+		cyclooctane.ben.print_cha_new(1200,620,cyclooctane.ben.print_chara);
+		::SetDCPenColor(hdc, RGB(255,0,0));   ::SetDCBrushColor(hdc,RGB(255,0,0)); 
+	/*	if(GetAsyncKeyState(VK_ESCAPE)<0)
+		{	
+			gamestatus=3;
+			break;
+		}*/
+		if(_kbhit())
+		{
+			char aaa=_getch();
+			if(aaa==27) break;
+			if(aaa=='\r') {gamestatus=3;break;}
+			if(aaa=='a'||aaa=='d')
+			{
+				if(aaa=='a')
+					tem_mod=tem_mod>1?tem_mod-1:3;
+				if(aaa=='d')
+					tem_mod=tem_mod<3?tem_mod+1:1;
+				::SetDCPenColor(hdc, RGB(0,0,0));  ::SetDCBrushColor(hdc,RGB(0,0,0)); 
+				Ellipse(hdc,310,790,325,800);Ellipse(hdc,760,790,775,800); Ellipse(hdc,1200,790,1215,800);
+			}
+		}
+		if(tem_mod==1)
+		{Ellipse(hdc,310,790,325,800);}
+		else if(tem_mod==2)
+		{Ellipse(hdc,760,790,775,800);}
+		else {Ellipse(hdc,1200,790,1215,800);}
+	}
+	Game::clear();
+	if(tem_mod!=new_data.co_ben.mod)
+	{	
+		new_data.co_ben.mod=tem_mod;
+		new_data.co_ben.set_new_data();
+	}
+	else
+	{
+		LPCTSTR str_recovery=L"恢复生命至满";
+		LPCTSTR str_life=L"增加生命上限";
+		LPCTSTR str_speed=L"增加移速";
+		LPCTSTR str_range=L"增加射程";
+		SetBkColor(hdc, RGB(0,0,0));
+		SetTextColor(hdc,RGB(255,255,255));
+		SelectObject(hdc,hFont_title);
+		TextOut(hdc,530,100,str_title,6);
+		TextOut(hdc,530,100,str_title,6);
+		SelectObject(hdc,hFont);
+		TextOut(hdc,600,500,str_recovery,6);
+		TextOut(hdc,600,600,str_life,6);
+		TextOut(hdc,600,700,str_speed,4);
+		TextOut(hdc,600,800,str_range,4);
+		TextOut(hdc,600,800,str_range,4);
+		while(1)
+		{
+			if(_kbhit())
+			{
+				char aaa=_getch();
+				if(aaa==27) {gamestatus=7;break;}
+				if(aaa=='\r') {gamestatus=3;break;}
+				if(aaa=='w'||aaa=='s')
+				{
+					if(aaa=='w')
+						tem_mod=tem_mod>1?tem_mod-1:4;
+					if(aaa=='s')
+						tem_mod=tem_mod<4?tem_mod+1:1;
+					::SetDCPenColor(hdc, RGB(0,0,0));  
+					::SetDCBrushColor(hdc,RGB(0,0,0)); 
+					Ellipse(hdc,565,525,585,545);
+					Ellipse(hdc,565,625,585,645);
+					Ellipse(hdc,565,725,585,745);
+					Ellipse(hdc,565,825,585,845);
+				}
+			}
+			::SetDCPenColor(hdc, RGB(255,0,0));  
+			::SetDCBrushColor(hdc,RGB(255,0,0)); 
+			if(tem_mod==1)
+				Ellipse(hdc,565,525,585,545);
+			else if(tem_mod==2)
+				Ellipse(hdc,565,625,585,645);
+			else if(tem_mod==3)
+				Ellipse(hdc,565,725,585,745);
+			else
+				Ellipse(hdc,565,825,585,845);
+		}
+		switch(tem_mod)
+		{
+		case 1: new_data.co_ben.life_now=new_data.co_ben.life; break;
+		case 2: new_data.co_ben.life+=3; new_data.co_ben.life_now+=3; break;
+		case 3: new_data.co_ben.speed+=5; break;
+		case 4: if(new_data.co_ben.mod==1) 
+					new_data.co_ben.range+=15;
+				else
+					new_data.co_ben.range+=50; break;
+		}
+	}
+	Game::clear();
+	new_data.set_data(cyclooctane);
+	new_data.fresh_data();
+	new_data.store_data(cyclooctane);
+	FSM::current=transition(gamestatus);
+	return;
+}
+
 /////////// Data Base ////////////////
 Data_Base::Data_Base()
 {
@@ -2179,9 +2347,6 @@ Data_Base::Data_Base(const Data_Base& a)
 }
 Data_Base::~Data_Base()
 {
-	//if(co_obstacle!=NULL && co_obstacle!=cyclooctane.obstacle)
-	//	delete []co_obstacle;
-	//co_obstacle = NULL;
 }
 void Data_Base::fresh_data()
 {
@@ -2192,6 +2357,7 @@ void Data_Base::fresh_data()
 void Data_Base::store_data(const Data_Base& a)
 {
 	co_death_count=a.co_death_count;
+	co_room_count=a.co_room_count;
 	co_Bullet_num_time_count=a.co_Bullet_num_time_count;
 	co_Monster_num_total=a.co_Monster_num_total;
 	co_num_monster_fresh=a.co_num_monster_fresh;
@@ -2210,6 +2376,7 @@ void Data_Base::store_data(const Game& b)
 	for(int i=0 ; i<500; i++)
 		co_monster[i]=b.monster[i];
 	co_death_count=b.death_count;
+	co_room_count=b.room_count;
 	co_Bullet_num_time_count=Bullet::num_time_count;
 	co_Monster_num_total=Monster::num_total;
 	co_num_monster_fresh=num_monster_fresh;
@@ -2220,6 +2387,7 @@ void Data_Base::set_data(Game& a)
 	a.ben=co_ben;
 	a.obstacle=co_obstacle;
 	a.square=co_square;
+	a.room_count=co_room_count;
 	for(int i=0 ; i<500; i++)
 		a.monster[i]=co_monster[i];
 	a.death_count=co_death_count;
@@ -2240,5 +2408,5 @@ void Data_Base::write_data()
 /////////// FSM ////////////////
 void FSM::reset()  
 {  
-    current = &s1;  
+    current = &s7;  
 } 
