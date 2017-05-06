@@ -234,8 +234,6 @@ Vector Vector::operator / (double a)
 /////////// Game ////////////////
 Game::Game()
 {
-	death_count=0;
-	room_count=0;
 	startup();
 }
 void Game::startup()
@@ -256,9 +254,7 @@ void Game::startup()
 				Game::map[xx][yy].gx=MAX_INT/1000;
 	}*/
 	death_count=0;
-	if(obstacle!=NULL)
-		delete []obstacle;
-	obstacle=new Obstacle[5];
+	room.new_room();
 	room_count=0;
 }
 void Game::clear()
@@ -307,26 +303,26 @@ void Game::updateWithoutInput()
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
-		monster[Monster::num_total++].create_new_monster();
+		room.monster[Monster::num_total++].create_new_monster();
 		if(Monster::num_total>400)
 			Monster::num_total=0;
 	}
 	for(int i=0 ; i<400; i++)
-		if(monster[i].exist==true)
+		if(room.monster[i].exist==true)
 		{
-			//get_path(monster[0].pos_x,monster[0].pos_y,monster[i].path);
-			monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-			Vector tem(monster[i].path.pos.x-monster[i].pos_x,monster[i].path.pos.y-monster[i].pos_y);
+			//get_path(room.monster[0].pos_x,room.monster[0].pos_y,room.monster[i].path);
+			room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+			Vector tem(room.monster[i].path.pos.x-room.monster[i].pos_x,room.monster[i].path.pos.y-room.monster[i].pos_y);
 			tem.new_normalize();
-			if(monster[i].path.pos.y-monster[i].pos_y==0)
+			if(room.monster[i].path.pos.y-room.monster[i].pos_y==0)
 			{	tem.y=0;  tem.x=1;}
-			if(monster[i].path.pos.x-monster[i].pos_x==0)
+			if(room.monster[i].path.pos.x-room.monster[i].pos_x==0)
 			{	tem.x=0;  tem.y=1;}
-			if((monster[i].path.pos.x-monster[i].pos_x==0)&&(monster[i].path.pos.y-monster[i].pos_y==0))
+			if((room.monster[i].path.pos.x-room.monster[i].pos_x==0)&&(room.monster[i].path.pos.y-room.monster[i].pos_y==0))
 				tem.x=tem.y=0;  
-			monster[i].pos_x+= tem.x*monster[i].speed;
-			monster[i].pos_y+= tem.y*monster[i].speed;
-			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			room.monster[i].pos_x+= tem.x*room.monster[i].speed;
+			room.monster[i].pos_y+= tem.y*room.monster[i].speed;
+			room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 		}
 	update_bullet();
 	judge_coll_cha_to_mon();
@@ -336,11 +332,11 @@ void Game::updateWithoutInput()
 	judge_coll_mon_to_obstacle();
 	for(int i=0; i<5; i++)
 	{	
-		obstacle[i].count++;
-		obstacle[i].print_now(square.angle);
-		if(obstacle[i].count>10)
-		{	obstacle[i].judge_show=!obstacle[i].judge_show;
-			obstacle[i].count=0;
+		room.obstacle[i].count++;
+		room.obstacle[i].print_now(square.angle);
+		if(room.obstacle[i].count>10)
+		{	room.obstacle[i].judge_show=!room.obstacle[i].judge_show;
+			room.obstacle[i].count=0;
 		}
 	}
 }
@@ -367,19 +363,19 @@ void Game::update_bullet()
 					judge_bullet(5,8,square.pos,bul->pos_x, bul->pos_y, bul->xita);
 					Vector circle_up(bul->pos_x-5,bul->pos_y-5),circle_down(bul->pos_x+5,bul->pos_y+5);
 					for(int i=0; i<400; i++)
-						if(monster[i].exist==true)
-							if( judge_circle_coll(circle_up,circle_down,monster[i].pos,monster[i].num_edge)==true  )
+						if(room.monster[i].exist==true)
+							if( judge_circle_coll(circle_up,circle_down,room.monster[i].pos,room.monster[i].num_edge)==true  )
 							{	
 								bul->exist=false;
-								monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-								monster[i].num_edge--;
-								if(monster[i].num_edge<3)
+								room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+								room.monster[i].num_edge--;
+								if(room.monster[i].num_edge<3)
 								{	
-									monster[i].exist=false;
+									room.monster[i].exist=false;
 									death_count++;
 								}
-								if(monster[i].exist!=false)
-									monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+								if(room.monster[i].exist!=false)
+									room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 							}
 				}
 				else
@@ -422,21 +418,21 @@ void Game::update_bullet()
 			if(ben.judge_cha_state==0)
 			{
 				for(int j=0; j<400; j++)
-				if(monster[j].exist==true)
+				if(room.monster[j].exist==true)
 				{
-					for(int k=0; k<monster[j].num_edge; k++)
+					for(int k=0; k<room.monster[j].num_edge; k++)
 					{
-						if(judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],tttem)==true)
+						if(judge_coll_line(line1_head,line1_last,room.monster[j].pos[k],room.monster[j].pos[k+1],tttem)==true)
 						{
-							monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
-							monster[j].num_edge--;
-							if(monster[j].num_edge<3)
+							room.monster[j].print_old(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
+							room.monster[j].num_edge--;
+							if(room.monster[j].num_edge<3)
 							{	
-								monster[j].exist=false;
+								room.monster[j].exist=false;
 								death_count++;
 							}
-							if(monster[j].exist!=false)
-								monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
+							if(room.monster[j].exist!=false)
+								room.monster[j].print_now(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
 						}
 					}
 				}
@@ -446,33 +442,33 @@ void Game::update_bullet()
 				double minx=MAX_DOUBLE;
 				for(int j=0; j<400; j++) // 找激光可射中的最近的怪物的距离平方最小值
 				{
-					if(monster[j].exist==false) continue;
-					for(int k=0; k<monster[j].num_edge; k++)
-						if(judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],cut)==true)
+					if(room.monster[j].exist==false) continue;
+					for(int k=0; k<room.monster[j].num_edge; k++)
+						if(judge_coll_line(line1_head,line1_last,room.monster[j].pos[k],room.monster[j].pos[k+1],cut)==true)
 							if( !(abs(cut.x-line1_head.x)<2&&abs(cut.y-line1_head.y)<2)&& !(abs(cut.x-line1_last.x)<2&&abs(cut.y-line1_last.y)<2))
 							{	
-								minx=min(minx, (line1_head.x-monster[j].pos_x)*(line1_head.x-monster[j].pos_x)+(line1_head.y-monster[j].pos_y)*(line1_head.y-monster[j].pos_y)  );
+								minx=min(minx, (line1_head.x-room.monster[j].pos_x)*(line1_head.x-room.monster[j].pos_x)+(line1_head.y-room.monster[j].pos_y)*(line1_head.y-room.monster[j].pos_y)  );
 								break;
 							}
 				}
 				int j=0;
 				for( ;j<400; j++) //找激光可射中的最近的怪物
-					if(monster[j].exist==true)
+					if(room.monster[j].exist==true)
 					{
-						if(minx!=(line1_head.x-monster[j].pos_x)*(line1_head.x-monster[j].pos_x)+(line1_head.y-monster[j].pos_y)*(line1_head.y-monster[j].pos_y))
+						if(minx!=(line1_head.x-room.monster[j].pos_x)*(line1_head.x-room.monster[j].pos_x)+(line1_head.y-room.monster[j].pos_y)*(line1_head.y-room.monster[j].pos_y))
 							continue;
 						double minx1=MAX_DOUBLE;
-						for(int k=0; k<monster[j].num_edge; k++) // 找该怪物距离出射点最近的一条边并记录最小值
+						for(int k=0; k<room.monster[j].num_edge; k++) // 找该怪物距离出射点最近的一条边并记录最小值
 						{
-							minx1=min(minx1,point_to_line(line1_head,monster[j].pos[k],monster[j].pos[k+1]));
+							minx1=min(minx1,point_to_line(line1_head,room.monster[j].pos[k],room.monster[j].pos[k+1]));
 						}
 						int k=0;
-						for(; k<monster[j].num_edge; k++)
+						for(; k<room.monster[j].num_edge; k++)
 						{
-							if(minx1!=point_to_line(line1_head,monster[j].pos[k],monster[j].pos[k+1])) continue;
-							judge_coll_line(line1_head,line1_last,monster[j].pos[k],monster[j].pos[k+1],cut);
-							monster[j].print_old(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
-							monster[j].exist=false;
+							if(minx1!=point_to_line(line1_head,room.monster[j].pos[k],room.monster[j].pos[k+1])) continue;
+							judge_coll_line(line1_head,line1_last,room.monster[j].pos[k],room.monster[j].pos[k+1],cut);
+							room.monster[j].print_old(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
+							room.monster[j].exist=false;
 							//printf("1111\n");
 							death_count++;
 							SelectObject(hdc,hPen);
@@ -483,12 +479,12 @@ void Game::update_bullet()
 							::SelectObject(hdc,GetStockObject(DC_PEN));
 							::SelectObject(hdc,GetStockObject(DC_BRUSH));
 							ben.line.life-=sqrt( (ben.line.pos_x-cut.x)*(ben.line.pos_x-cut.x)  + (ben.line.pos_y-cut.y)*(ben.line.pos_y-cut.y) );
-							judge_bullet(k,k+1,monster[j].pos,cut.x, cut.y, ben.line.xita);
+							judge_bullet(k,k+1,room.monster[j].pos,cut.x, cut.y, ben.line.xita);
 							line1_head.x=cut.x; line1_head.y=cut.y;
 							ben.line_array[ben.num_line_array++]=cut;
 							break;
 						}
-					if(k<monster[j].num_edge) break;
+					if(k<room.monster[j].num_edge) break;
 				}
 				if(j<400) continue;
 			}
@@ -586,10 +582,10 @@ void Game::updateWithInput()
 					ben.judge_cha_state=1;
 					for(int i=0; i<Monster::num_total; i++)
 					{	
-						if(monster[i].exist=false) continue; 
-						monster[i].exist=false;
+						if(room.monster[i].exist=false) continue; 
+						room.monster[i].exist=false;
 						death_count++;
-						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+						room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 					}
 					ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
 				}
@@ -846,43 +842,43 @@ void Game::judge_coll_mon_to_wall()
 {
 	Vector shadow;
 	for(int i=0; i<400; i++)
-		if(monster[i].exist)
+		if(room.monster[i].exist)
 		{
 			double num_move=0;
-			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge1,5,shadow,num_move)==true)
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,square.edge1,5,shadow,num_move)==true)
 			{	
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-				monster[i].pos_x-=shadow.x*num_move;
-				monster[i].pos_y-=shadow.y*num_move;
-				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*num_move;
+				room.monster[i].pos_y-=shadow.y*num_move;
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
-			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge2,5,shadow,num_move)==true)
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,square.edge2,5,shadow,num_move)==true)
 			{	
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-				monster[i].pos_x-=shadow.x*num_move;
-				monster[i].pos_y-=shadow.y*num_move;
-				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*num_move;
+				room.monster[i].pos_y-=shadow.y*num_move;
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
-			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge3,5,shadow,num_move)==true)
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,square.edge3,5,shadow,num_move)==true)
 			{	
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-				monster[i].pos_x-=shadow.x*num_move;
-				monster[i].pos_y-=shadow.y*num_move;
-				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*num_move;
+				room.monster[i].pos_y-=shadow.y*num_move;
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
-			if(judge_coll_single(monster[i].pos,monster[i].num_edge,square.edge4,5,shadow,num_move)==true)
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,square.edge4,5,shadow,num_move)==true)
 			{
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-				monster[i].pos_x-=shadow.x*num_move;
-				monster[i].pos_y-=shadow.y*num_move;
-				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*num_move;
+				room.monster[i].pos_y-=shadow.y*num_move;
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
 			judge_coll_mon_to_corner(i);
-			if( ( (monster[i].pos_x-square.pos_x)*(monster[i].pos_x-square.pos_x)  )+( (monster[i].pos_y-square.pos_y)*(monster[i].pos_y-square.pos_y) )>=350*350*2  )
+			if( ( (room.monster[i].pos_x-square.pos_x)*(room.monster[i].pos_x-square.pos_x)  )+( (room.monster[i].pos_y-square.pos_y)*(room.monster[i].pos_y-square.pos_y) )>=350*350*2  )
 			{	
-				monster[i].exist=false;
+				room.monster[i].exist=false;
 				death_count++;
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
 		}
 	return ;
@@ -891,15 +887,15 @@ void Game::judge_coll_cha_to_mon()
 {
 	Vector shadow;
 	for(int i=0; i<400; i++)
-		if(monster[i].exist)
+		if(room.monster[i].exist)
 		{
 			double num_move=0;
-			if(judge_coll_single(monster[i].pos,monster[i].num_edge,ben.print_chara,7,shadow,num_move)==true)
+			if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,ben.print_chara,7,shadow,num_move)==true)
 			{	
-				monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-				monster[i].pos_x-=shadow.x*num_move;
-				monster[i].pos_y-=shadow.y*num_move;
-				monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+				room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				room.monster[i].pos_x-=shadow.x*num_move;
+				room.monster[i].pos_y-=shadow.y*num_move;
+				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			}
 		}
 	return ;
@@ -908,18 +904,18 @@ void Game::judge_coll_mon_to_mon()
 {
 	Vector shadow;
 	for(int i=0; i<400; i++)
-		if(monster[i].exist)
+		if(room.monster[i].exist)
 			for(int j=i+1; j<400; j++)
-				if(monster[j].exist)
+				if(room.monster[j].exist)
 				{
 					double num_move=0;
-					if(judge_coll_single(monster[i].pos,monster[i].num_edge,monster[j].pos,monster[j].num_edge,shadow,num_move)==true)
+					if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge,room.monster[j].pos,room.monster[j].num_edge,shadow,num_move)==true)
 					{	
-						monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-						//monster[j].print_now(monster[j].pos_x,monster[j].pos_y,monster[j].num_edge,monster[j].pos);
-						monster[i].pos_x-=shadow.x*num_move;
-						monster[i].pos_y-=shadow.y*num_move;
-						monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+						room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+						//room.monster[j].print_now(room.monster[j].pos_x,room.monster[j].pos_y,room.monster[j].num_edge,room.monster[j].pos);
+						room.monster[i].pos_x-=shadow.x*num_move;
+						room.monster[i].pos_y-=shadow.y*num_move;
+						room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 					}
 				}
 	return ;
@@ -949,36 +945,36 @@ void Game::judge_coll_cha_to_corner()
 }
 void Game::judge_coll_mon_to_corner(int i)
 {
-	monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-	judge_coll_corner(monster[i].pos_x,monster[i].pos_y, square.corner, 4, square.pos_x, square.pos_y);
-	monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+	room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+	judge_coll_corner(room.monster[i].pos_x,room.monster[i].pos_y, square.corner, 4, square.pos_x, square.pos_y);
+	room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 	return;
 }
 void Game::judge_coll_mon_to_obstacle()
 {
 	Vector shadow; double num_move;
 	for(int i=0; i<400; i++)
-		if(monster[i].exist==true)
+		if(room.monster[i].exist==true)
 			for(int j=0; j<5; j++)
 			{
-				if(obstacle[j].judge_show==false) continue;
+				if(room.obstacle[j].judge_show==false) continue;
 				POINT tem[]={
-					obstacle[j].pos_x-Obstacle::r,obstacle[j].pos_y-Obstacle::r,
-					obstacle[j].pos_x-Obstacle::r,obstacle[j].pos_y+Obstacle::r,
-					obstacle[j].pos_x+Obstacle::r,obstacle[j].pos_y+Obstacle::r,
-					obstacle[j].pos_x+Obstacle::r,obstacle[j].pos_y-Obstacle::r
+					room.obstacle[j].pos_x-Obstacle::r,room.obstacle[j].pos_y-Obstacle::r,
+					room.obstacle[j].pos_x-Obstacle::r,room.obstacle[j].pos_y+Obstacle::r,
+					room.obstacle[j].pos_x+Obstacle::r,room.obstacle[j].pos_y+Obstacle::r,
+					room.obstacle[j].pos_x+Obstacle::r,room.obstacle[j].pos_y-Obstacle::r
 				};
-				if(judge_coll_single(monster[i].pos,monster[i].num_edge, tem ,4,shadow,num_move)==true)
+				if(judge_coll_single(room.monster[i].pos,room.monster[i].num_edge, tem ,4,shadow,num_move)==true)
 				{	
-					monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
-					monster[i].num_edge--;
-					if(monster[i].num_edge<3)
+					room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+					room.monster[i].num_edge--;
+					if(room.monster[i].num_edge<3)
 					{	
-						monster[i].exist=false;
+						room.monster[i].exist=false;
 						death_count++;
 					}
-					if(monster[i].exist!=false)
-						monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+					if(room.monster[i].exist!=false)
+						room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 				}
 			}
 }
@@ -993,16 +989,16 @@ void Game::get_path(double x ,double  y, Node &path)
 		{
 			if(abs(ben.pos_x-x)<5)
 			{
-				if(obstacle[i].pos_x<= x+Obstacle::r/2 &&obstacle[i].pos_x>= x-Obstacle::r/2 && obstacle[i].pos_y<=max(y,ben.pos_y)  &&obstacle[i].pos_y>=min(y,ben.pos_y) )
+				if(room.obstacle[i].pos_x<= x+Obstacle::r/2 &&room.obstacle[i].pos_x>= x-Obstacle::r/2 && room.obstacle[i].pos_y<=max(y,ben.pos_y)  &&room.obstacle[i].pos_y>=min(y,ben.pos_y) )
 					break;//障碍物位于两者之间
 			}
 			if(abs(ben.pos_y-y)<5)
 			{
-				if(obstacle[i].pos_y<= y+Obstacle::r/2 &&obstacle[i].pos_y>= y-Obstacle::r/2 && obstacle[i].pos_x<=max(x,ben.pos_x)  &&obstacle[i].pos_x>=min(x,ben.pos_x) )
+				if(room.obstacle[i].pos_y<= y+Obstacle::r/2 &&room.obstacle[i].pos_y>= y-Obstacle::r/2 && room.obstacle[i].pos_x<=max(x,ben.pos_x)  &&room.obstacle[i].pos_x>=min(x,ben.pos_x) )
 					break;//障碍物位于两者之间
 			}
-			double dis=abs(k*obstacle[i].pos_x-obstacle[i].pos_y+b)/(k*k+1);
-			double x1=( 1/k*obstacle[i].pos_x+obstacle[i].pos_y-b )/(k+1/k);
+			double dis=abs(k*room.obstacle[i].pos_x-room.obstacle[i].pos_y+b)/(k*k+1);
+			double x1=( 1/k*room.obstacle[i].pos_x+room.obstacle[i].pos_y-b )/(k+1/k);
 			double y1=k*x1+b;
 			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(ben.pos_x,x)))  ) && ( x1<=max(ben.pos_x,x))) ) 
 			{
@@ -1113,14 +1109,10 @@ void Game::get_path(double x ,double  y, Node &path)
 //////////// Room ////////////////
 Room::Room()
 {
+	if(obstacle!=NULL)
+		delete []obstacle;
 	obstacle=new Obstacle[5];
 	old_door=-1;
-}
-Room::~Room()
-{
-	if(obstacle)
-		delete []obstacle;
-	obstacle=NULL;
 }
 void Room::new_door()
 {
@@ -1128,10 +1120,11 @@ void Room::new_door()
 }
 void Room::new_room()
 {
-	if(obstacle)
+	if(obstacle!=NULL)
 		delete []obstacle;
 	obstacle=new Obstacle[5];
-
+	time_count=50;
+	old_door=-1;
 }
 
 
@@ -2363,20 +2356,16 @@ void Data_Base::store_data(const Data_Base& a)
 	co_Bullet_num_time_count=a.co_Bullet_num_time_count;
 	co_Monster_num_total=a.co_Monster_num_total;
 	co_num_monster_fresh=a.co_num_monster_fresh;
-	for(int i=0; i<500; i++)
-		co_monster[i]=a.co_monster[i];
 	co_square=a.co_square;
-	co_obstacle=a.co_obstacle;
+	co_room=a.co_room;
 	co_ben=a.co_ben;
 	return;
 }
 void Data_Base::store_data(const Game& b)
 {
 	co_ben=b.ben;
-	co_obstacle=b.obstacle;
+	co_room=b.room;
 	co_square=b.square;
-	for(int i=0 ; i<500; i++)
-		co_monster[i]=b.monster[i];
 	co_death_count=b.death_count;
 	co_room_count=b.room_count;
 	co_Bullet_num_time_count=Bullet::num_time_count;
@@ -2387,11 +2376,9 @@ void Data_Base::store_data(const Game& b)
 void Data_Base::set_data(Game& a)
 {
 	a.ben=co_ben;
-	a.obstacle=co_obstacle;
+	a.room=co_room;
 	a.square=co_square;
 	a.room_count=co_room_count;
-	for(int i=0 ; i<500; i++)
-		a.monster[i]=co_monster[i];
 	a.death_count=co_death_count;
 	Bullet::num_time_count=co_Bullet_num_time_count;
 	Monster::num_total=co_Monster_num_total;

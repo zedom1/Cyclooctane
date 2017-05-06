@@ -182,9 +182,7 @@ struct Room  // ·¿¼ä
 {
 public:
 	Room();
-	~Room();
 	Obstacle *obstacle;
-	Square square;
 	Monster monster[500];
 	int time_count;
 	int old_door;
@@ -195,11 +193,11 @@ public:
 struct Game
 {
 	Charactor ben;
-	//Room room;
+	Room room;
 	Node map[45][45];
-	Obstacle *obstacle;
+	//Obstacle *obstacle;
 	Square square;
-	Monster monster[500];
+	//Monster monster[500];
 	int death_count;
 	int room_count;
 	friend struct Data_Base;
@@ -229,9 +227,10 @@ public:
 struct Data_Base
 {
 	Charactor co_ben;
-	Obstacle *co_obstacle;
+	//Obstacle *co_obstacle;
 	Square co_square;
-	Monster co_monster[500];
+	Room co_room;
+	//Monster co_monster[500];
 	int co_death_count;
 	int co_Bullet_num_time_count;
 	int co_Monster_num_total;
