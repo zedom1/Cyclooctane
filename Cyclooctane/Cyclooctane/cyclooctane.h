@@ -3,13 +3,11 @@
 
 #include<iostream>
 #include<cmath>
-#include<string>
-#include<string.h>
 #include<stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <windows.h>
 #include <conio.h>
-#include <time.h>
 #include <assert.h>
 #include <tchar.h>
 using namespace std;
@@ -100,7 +98,7 @@ public:
 
 struct Charactor //角色
 {
-	string name;
+	char name[15];
 	double pos_x,pos_y;
 	int judge_cha_state;   //  后为大招是否使用
 	int judge_dir; // 判断此时的常态方向
@@ -131,7 +129,6 @@ public:
 struct Monster //小怪
 {
 public:
-	string name;
 	double pos_x,pos_y;
 	double speed;
 	int num_edge;
@@ -156,7 +153,6 @@ public:
 	POINT pos[5];
 	Obstacle();
 	static const double r;
-	
 	void print_old();
 	virtual void new_point()=0;
 	void new_center(double angle);

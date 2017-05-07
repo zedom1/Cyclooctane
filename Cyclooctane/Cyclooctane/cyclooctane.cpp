@@ -422,11 +422,23 @@ void Game::updateWithoutInput()
 	{
 		int tem_x=get_i(normalize_x(room.stab[i].pos_x)),tem_y=get_j(normalize_y(room.stab[i].pos_y));
 		mapp[tem_x][tem_y].ground=1;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+				if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=20;
+			}
 	}
 	for(int i=0; i<room.num_stone; i++)
 	{
 		int tem_x=get_i(normalize_x(room.stone[i].pos_x)),tem_y=get_j(normalize_y(room.stone[i].pos_y));
 		mapp[tem_x][tem_y].ground=1;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+				if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=10;
+			}
 	}
 	mapp[get_i(normalize_x(ben.pos_x))][get_j(normalize_y(ben.pos_y))].ground=3;
 	room.time_count++;
@@ -438,7 +450,7 @@ void Game::updateWithoutInput()
 		if(ben.judge_cha_state)  // CD
 		{
 			ben.num_count[ben.mod]++;
-			if(ben.num_count[ben.mod]>200)
+			if(ben.num_count[ben.mod]>50)
 			{
 				ben.num_count[ben.mod]=0;
 				ben.judge_cha_state=0;
@@ -448,7 +460,7 @@ void Game::updateWithoutInput()
 	num_monster_fresh+=9;
 	if(num_monster_fresh<10)
 	{	
-	//	num_monster_fresh=1;
+		num_monster_fresh=1;
 		room.monster[Monster::num_count++].create_new_monster();
 		Monster::num_total++;
 		if(Monster::num_count>400)
@@ -1143,7 +1155,7 @@ void Game::get_path(double x ,double  y, POINT &path)
 while(findd==false)
 {
 	for(int i=first; i<last; i++)
-		if(OPEN[i].ground==3)
+		if( (OPEN[i].ground%10)==3)
 		{
 			OPEN[i].fa=CLOSE[last_close-1].pos;
 			findd=true; break;
@@ -1188,7 +1200,7 @@ while(findd==false)
 			if(CLOSE[cc].pos.x==i && CLOSE[cc].pos.y==j)
 			{flag=1; break;}
 		if(flag==1) continue;
-		if(mapp[i][j].ground==1) continue;
+		if(mapp[i][j].ground==1 || mapp[i][j].ground>10) continue;
 		mapp[i][j].fa=mapp[now_x][now_y].pos;
 		if( i==now_x || j==now_y ) // ≈–∂œ «∑Ò «–±∂‘Ω«
 			mapp[i][j].gx+=10;
@@ -1243,12 +1255,8 @@ void Room::new_door(POINT door[], double angle)
 }
 void Room::new_room(int a)
 {
-	if(stab!=NULL)
-		delete []stab;
 	num_stab=rand()%3+2;
 	stab=new Stab[num_stab];
-	if(stone!=NULL)
-		delete []stone;
 	num_stone=rand()%4+2;
 	stone=new Stone[num_stone];
 	time_count=0;
@@ -1295,7 +1303,8 @@ Charactor::Charactor() // ƒ¨»œ1∫≈
 	memset(line_array,0,sizeof(line_array));
 	num_line_array=0;
 	mod=1;
-	name="Benzene";
+	char temp[]="Benzene";
+	for(int i=0; i<7; i++) name[i]=temp[i];name[8]='\0';
 	num_bul=0;
 	head=new Bullet(pos_x,pos_y,0);
 	last=head;
@@ -1642,7 +1651,8 @@ void Charactor::set_new_data()
 	num_bul=0;
 	if(mod==1)
 	{
-		name="Benzene";
+		char temp[]="Benzene";
+		for(int i=0; i<7; i++) name[i]=temp[i];name[7]='\0';
 		head=new Bullet(pos_x,pos_y,0);
 		last=head;
 		
@@ -1651,12 +1661,14 @@ void Charactor::set_new_data()
 	}
 	if(mod==2)
 	{
-		name="Cyclohexadiene";
+		char temp[]="Cyclohexadiene";
+		for(int i=0; i<14; i++) name[i]=temp[i];name[14]='\0';
 		range=550;
 	}
 	if(mod==3)
 	{
-		name="Pyran";
+		char temp[]="Pyran";
+		for(int i=0; i<5; i++) name[i]=temp[i];name[5]='\0';
 		range=40;
 	}
 }
@@ -2007,9 +2019,11 @@ void Stab::reset()
 	count_max=rand()%7+3;
 	int c=rand()%3;
 	if(c==2) count_max=MAX_INT;
-	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
-	pos_x=rand1*rand()%300+900;   // 900 495
-	pos_y=rand2*rand()%300+495;
+	int rand1=rand()%2-1,rand2=rand()%2-1;
+	pos_x=rand()%12+3;    // 900 495
+	pos_y=rand()%12+3;
+	pos_x=get_x_from_i(pos_x);
+	pos_y=get_y_from_j(pos_y);
 	new_point();
 	Vector a(pos_x-900,495-pos_y);
 	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
@@ -2064,9 +2078,11 @@ void Stone::print_now(double angle)
 }
 void Stone::reset()
 {
-	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
-	pos_x=rand1*rand()%300+900;   // 900 495
-	pos_y=rand2*rand()%300+495;
+	int rand1=rand()%2-1,rand2=rand()%2-1;
+	pos_x=rand()%12+3;    // 900 495
+	pos_y=rand()%12+3;
+	pos_x=get_x_from_i(pos_x);
+	pos_y=get_y_from_j(pos_y);
 	new_point();
 	Vector a(pos_x-900,495-pos_y);
 	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
