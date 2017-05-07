@@ -47,13 +47,18 @@ struct Node
 {
 public:
 	POINT pos;
-	int fa;
-	double fx,gx,hx;
-	Node operator = (Node a);
+	POINT fa;
+	int fx,gx,hx;
+	int ground;
+
+	Node& operator = ( Node &a);
 	bool operator ==(Node a);
 	bool operator != (Node a);
 	Node();
-	Node(double x,double y, int a, double fx1, double gx1, double hx1 );
+	Node(int a); // 0 通路 1 障碍 2起点 3终点
+	~Node();
+	int cal_hx(int x, int y);
+	int cal_fx();
 };
 
 struct Vector
@@ -134,7 +139,7 @@ public:
 	Monster(int num);
 	Monster();
 	POINT pos[10];
-	Node path;
+	POINT path;
 	static int num_total;
 	static int num_count;
 	void print_now(int x, int y, int num, POINT pos[]);
@@ -215,7 +220,7 @@ struct Game
 {
 	Charactor ben;
 	Room room;
-	Node map[45][45];
+	
 	Square square;
 	int death_count;
 	int room_count;
@@ -229,7 +234,6 @@ public:
 	static void clear();
 	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita);
 	void update_bullet();
-	
 	bool judge_coll_chara_to_wall();
 	void print_new();
 	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
@@ -240,7 +244,7 @@ public:
 	void judge_coll_cha_to_corner();
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
-	void get_path(double x ,double  y, Node &path);
+	void get_path(double x ,double  y, POINT &path);
 };
 
 struct Data_Base
@@ -323,8 +327,10 @@ public:
 void gotoxy(int x,int y);
 int normalize_x(double x);  // 找到坐标所在方格的中心点x坐标
 int normalize_y(double y);   // 找到坐标所在方格的中心点y坐标
-int get_i(double x);   // 该中心对应map的i值
-int get_j(double y);  // 该中心对应map的j值
+int get_i(double x);   // 该中心对应mapp的i值
+int get_j(double y);  // 该中心对应mapp的j值
+int get_x_from_i(int i);  //根据i求得方格中心点x坐标
+int get_y_from_j(int j); //根据i求得方格中心点x坐标
 void quicksort(int first, int last , Node* a);
 bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);  // 线段相交判定并求交点（若有）
 void initi();  // 窗体初始化
