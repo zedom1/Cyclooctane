@@ -409,38 +409,6 @@ void Game::print_new()
 }
 void Game::updateWithoutInput()
 {
-	memset(mapp,0,sizeof(mapp));
-	for(int i=0; i<42; i++)   // 实时更新mapp
-		for(int j=0; j<42; j++)
-		{
-			POINT p={ i,j };
-			mapp[i][j].pos=p;
-			mapp[i][j].cal_hx(get_i( normalize_x(ben.pos_x)), get_j(normalize_y(ben.pos_y)));
-			mapp[i][j].ground=0;
-		}
-	for(int i=0; i<room.num_stab; i++)
-	{
-		int tem_x=get_i(normalize_x(room.stab[i].pos_x)),tem_y=get_j(normalize_y(room.stab[i].pos_y));
-		mapp[tem_x][tem_y].ground=1;
-		for(int j=tem_x-1; j<=tem_x+1; j++)
-			for(int k=tem_y-1; k<=tem_y+1; k++)
-			{
-				if(j==tem_x&& k==tem_y) continue;
-				mapp[j][k].ground+=20;
-			}
-	}
-	for(int i=0; i<room.num_stone; i++)
-	{
-		int tem_x=get_i(normalize_x(room.stone[i].pos_x)),tem_y=get_j(normalize_y(room.stone[i].pos_y));
-		mapp[tem_x][tem_y].ground=1;
-		for(int j=tem_x-1; j<=tem_x+1; j++)
-			for(int k=tem_y-1; k<=tem_y+1; k++)
-			{
-				if(j==tem_x&& k==tem_y) continue;
-				mapp[j][k].ground+=10;
-			}
-	}
-	mapp[get_i(normalize_x(ben.pos_x))][get_j(normalize_y(ben.pos_y))].ground=3;
 	room.time_count++;
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
@@ -457,19 +425,55 @@ void Game::updateWithoutInput()
 			}
 		}
 	}
-	num_monster_fresh+=9;
-	if(num_monster_fresh<10)
+	num_monster_fresh++;
+	if(num_monster_fresh>10)
 	{	
-		num_monster_fresh=1;
+		num_monster_fresh=0;
 		room.monster[Monster::num_count++].create_new_monster();
 		Monster::num_total++;
 		if(Monster::num_count>400)
 			Monster::num_count=0;
 	}
+	//////////////////////////
+	memset(mapp,0,sizeof(mapp));
+	for(int i=0; i<42; i++)   // 实时更新mapp
+		for(int j=0; j<42; j++)
+		{
+			POINT p={ i,j };
+			mapp[i][j].pos=p;
+			mapp[i][j].cal_hx(get_i(normalize_x(ben.pos_x)), get_j(normalize_y(ben.pos_y)));
+			mapp[i][j].ground=0;
+		}
+	for(int i=0; i<room.num_stab; i++)
+	{
+		int tem_x=get_i(normalize_x(room.stab[i].pos_x)),tem_y=get_j(normalize_y(room.stab[i].pos_y));
+	//	mapp[tem_x][tem_y].ground=1;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+		//		if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=20;
+			}
+	}
+	for(int i=0; i<room.num_stone; i++)
+	{
+		int tem_x=get_i(normalize_x(room.stone[i].pos_x)),tem_y=get_j(normalize_y(room.stone[i].pos_y));
+		mapp[tem_x][tem_y].ground+=20;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+				if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=10;
+			}
+	}
+//	for(int i=0; i<Monster::num_count; i++)
+	//	mapp[get_i(normalize_x(room.monster[i].pos_x))][get_j(normalize_y(room.monster[i].pos_y))].ground+=20;
+	mapp[get_i(normalize_x(ben.pos_x))][get_j(normalize_y(ben.pos_y))].ground=3;
+	/////////////////////////
 	for(int i=0 ; i<400; i++)
 		if(room.monster[i].exist==true)
 		{
-			get_path(room.monster[0].pos_x,room.monster[0].pos_y,room.monster[i].path);
+			get_path(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].path);
 			room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 			Vector tem(room.monster[i].path.x-room.monster[i].pos_x,room.monster[i].path.y-room.monster[i].pos_y);
 			tem.new_normalize();
@@ -492,6 +496,7 @@ void Game::updateWithoutInput()
 	judge_coll_cha_to_corner();
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
+	
 	for(int i=0; i<room.num_stab; i++)
 	{	
 		room.stab[i].count++;
@@ -506,6 +511,7 @@ void Game::updateWithoutInput()
 	if(room.time_count>=room.time_max) 
 	{	
 		Vector tem; double tem1;
+		square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 		room.new_door(room.door,square.angle);
 		if(judge_coll_single(ben.print_chara,7,room.door,5,tem,tem1)==true   )
 		{
@@ -1085,10 +1091,9 @@ void Game::judge_coll_mon_to_obstacle()
 	}
 }
 void Game::get_path(double x ,double  y, POINT &path)
-{ 
-	// x,y为目前位置，目标位置为 (ben.pos_x,ben.pos_y)
+{ // x,y为目前位置，目标位置为 (ben.pos_x,ben.pos_y)
 	//  特判 若怪物到人路径上无障碍物， 则直线走
-/*	{
+	{
 		double k=(ben.pos_y-y)/(ben.pos_x-x);
 		double b=y-k*x;
 		int i=0;
@@ -1130,19 +1135,25 @@ void Game::get_path(double x ,double  y, POINT &path)
 		}
 		if(i==room.num_stab&&j==room.num_stone) 
 		{
-			path.pos.x=ben.pos_x; 
-			path.pos.y=ben.pos_y; 
+			path.x=ben.pos_x; 
+			path.y=ben.pos_y; 
 			return; 
 		}
 	}
-	*/
+	//////////////////////////////////////////
 	int aim_x=get_i(normalize_x(ben.pos_x)),aim_y=get_j(normalize_y(ben.pos_y));
 	int now_x= get_i(normalize_x(x)), now_y=get_j(normalize_y(y));
 	int mon_x=get_i(normalize_x(x)),mon_y=get_j(normalize_y(y));
+	int count=0;
+	for(int i=0; i<42; i++)  // gx清空
+		for(int j=0; j<42; j++)
+			mapp[i][j].gx=0;
+	//////////////////////////////////////
+	
 	POINT aim={ aim_x ,aim_y };
 	POINT start_point={now_x , now_y};
-	Node OPEN[1000],CLOSE[1000];
-	POINT PATH[1000];
+	Node OPEN[10000],CLOSE[10000];
+	POINT PATH[10000];
 	Node empt;
 	memset(OPEN,0,sizeof(OPEN));
 	memset(CLOSE,0,sizeof(CLOSE));
@@ -1162,7 +1173,8 @@ while(findd==false)
 		}
 		// 从OPEN表里找fx最小的并加入CLOSE表
 	quicksort(first, last-1, OPEN);
-	CLOSE[last_close++]=OPEN[first++];
+	if(first<last)
+		CLOSE[last_close++]=OPEN[first++];
 
 		// 从新加入CLOSE表的点开始扩展
 	now_x=CLOSE[last_close-1].pos.x;
@@ -1200,7 +1212,12 @@ while(findd==false)
 			if(CLOSE[cc].pos.x==i && CLOSE[cc].pos.y==j)
 			{flag=1; break;}
 		if(flag==1) continue;
-		if(mapp[i][j].ground==1 || mapp[i][j].ground>10) continue;
+		int stamp=0;
+		for(int qwe=i-1; qwe<=i+1; qwe++)
+			for(int asd=j-1; asd<=j+1; asd++)
+				if((mapp[qwe][asd].ground%10)==3)
+				{stamp=1; break;}
+		if( stamp==0  && ( mapp[i][j].ground>10)  ) continue;
 		mapp[i][j].fa=mapp[now_x][now_y].pos;
 		if( i==now_x || j==now_y ) // 判断是否是斜对角
 			mapp[i][j].gx+=10;
@@ -1209,13 +1226,24 @@ while(findd==false)
 		OPEN[last++]=mapp[i][j];
 	}
 	}
+	count++;    // 异常状态弹出
+	if(count>9600)
+	{
+		path.x=ben.pos_x;
+		path.y=ben.pos_y;
+		return;
+	}
 }
+	count=0;
 	///////////////////////////
 	Node temp=mapp[aim_x][aim_y];
 	while( temp.pos.x!=mapp[mon_x][mon_y].pos.x || temp.pos.y!=mapp[mon_x][mon_y].pos.y )
 	{
-		PATH[end_path++]=temp.pos;
-		temp=mapp[temp.fa.x][temp.fa.y];
+		PATH[end_path++]=temp.pos;   // 记录路径
+		temp=mapp[temp.fa.x][temp.fa.y];   // 回溯至父节点
+		count++;
+		if(count>9600)
+		{path.x=ben.pos_x;path.y=ben.pos_y;return;}
 	}
 	POINT ans={ get_x_from_i(PATH[end_path-1].x) , get_y_from_j(PATH[end_path-1].y) };
 	path=ans;
@@ -2288,6 +2316,10 @@ void ON_GAME::eventt()
 		if(cyclooctane.ben.life==0)
 		{
 			gamestatus=5; break;
+		}
+		if(cyclooctane.room_count%2==0&&cyclooctane.room_count)
+		{
+			gamestatus=7; break;
 		}
 	}
 	Game::clear();

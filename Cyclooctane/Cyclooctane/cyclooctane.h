@@ -241,6 +241,7 @@ public:
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
 	void get_path(double x ,double  y, POINT &path);
+	void fresh_map();
 };
 
 struct Data_Base
