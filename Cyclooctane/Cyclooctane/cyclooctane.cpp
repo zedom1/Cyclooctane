@@ -378,6 +378,7 @@ void Game::startup()
 		}
 	}
 	death_count=0;
+	judge_update=0;
 	room.new_room(room_count);
 	room_count=0;
 }
@@ -521,6 +522,7 @@ void Game::updateWithoutInput()
 			Game::clear();
 			room.new_room(room_count);
 			room_count++;
+			judge_update=0;
 			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
 			ben.pos_x=2*square.pos_x-ben.pos_x;
 			ben.pos_y=2*square.pos_y-ben.pos_y;
@@ -2292,6 +2294,8 @@ State* ON_GAME::transition(int x)
             return &s4;  
         case 5:  
             return &s5;  
+		case 7:
+			return &s7;
         default:  
             return &s3; 
     }  
@@ -2317,8 +2321,9 @@ void ON_GAME::eventt()
 		{
 			gamestatus=5; break;
 		}
-		if(cyclooctane.room_count%2==0&&cyclooctane.room_count)
+		if(cyclooctane.room_count%2==0&&cyclooctane.room_count&&cyclooctane.judge_update==0)
 		{
+			cyclooctane.judge_update=1;
 			gamestatus=7; break;
 		}
 	}
@@ -2516,11 +2521,6 @@ void CHANGE::eventt()
 		cyclooctane.ben.mod=3;
 		cyclooctane.ben.print_cha_new(1200,620,cyclooctane.ben.print_chara);
 		::SetDCPenColor(hdc, RGB(255,0,0));   ::SetDCBrushColor(hdc,RGB(255,0,0)); 
-	/*	if(GetAsyncKeyState(VK_ESCAPE)<0)
-		{	
-			gamestatus=3;
-			break;
-		}*/
 		if(_kbhit())
 		{
 			char aaa=_getch();
@@ -2636,6 +2636,7 @@ void Data_Base::fresh_data()
 	co_Monster_num_count=0;
 	co_Monster_num_total=0;
 	co_num_monster_fresh=0;
+	co_judge_update=0;
 	return;
 }
 void Data_Base::store_data(const Data_Base& a)
@@ -2649,6 +2650,7 @@ void Data_Base::store_data(const Data_Base& a)
 	co_square=a.co_square;
 	co_room=a.co_room;
 	co_ben=a.co_ben;
+	co_judge_update=a.co_judge_update;
 	return;
 }
 void Data_Base::store_data(const Game& b)
@@ -2662,6 +2664,7 @@ void Data_Base::store_data(const Game& b)
 	co_Monster_num_total=Monster::num_total;
 	co_Monster_num_count=Monster::num_count;
 	co_num_monster_fresh=num_monster_fresh;
+	co_judge_update=b.judge_update;
 	return;
 }
 void Data_Base::set_data(Game& a)
@@ -2675,6 +2678,7 @@ void Data_Base::set_data(Game& a)
 	Monster::num_total=co_Monster_num_total;
 	Monster::num_count=co_Monster_num_count;
 	num_monster_fresh=co_num_monster_fresh;
+	a.judge_update=co_judge_update;
 	return;
 }
 void Data_Base::read_data()

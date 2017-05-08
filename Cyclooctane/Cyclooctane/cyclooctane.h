@@ -216,10 +216,10 @@ struct Game
 {
 	Charactor ben;
 	Room room;
-	
 	Square square;
 	int death_count;
 	int room_count;
+	bool judge_update;
 	friend struct Data_Base;
 public:
 	Game();
@@ -249,6 +249,7 @@ struct Data_Base
 	Charactor co_ben;
 	Square co_square;
 	Room co_room;
+	bool co_judge_update;
 	int co_death_count;
 	int co_Bullet_num_time_count;
 	int co_Monster_num_total;
