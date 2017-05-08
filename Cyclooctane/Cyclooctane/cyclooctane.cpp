@@ -690,11 +690,53 @@ void Game::update_bullet()
 				MoveToEx(hdc,line1_head.x,line1_head.y,NULL);
 				LineTo(hdc,line1_last.x,line1_last.y);
 			}
-			::SelectObject(hdc,GetStockObject(DC_PEN));
-			::SelectObject(hdc,GetStockObject(DC_BRUSH));
 			break;
 		}
 		ben.line.life=0;
+	}
+	if(ben.mod==3)
+	{
+		if(ben.judge_cha_state==0) // bomb
+		{
+			if(ben.num_bul==0) return;
+			ben.head->life++;
+			if(ben.head->life==ben.range)
+			{	
+				ben.head->exist=false;
+				ben.num_bul=0;
+				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
+				bomb_hurt();
+			}
+			if(ben.head->exist==true)
+			{
+				if( ( (ben.head->pos_x-square.pos_x)*(ben.head->pos_x-square.pos_x)  )+( (ben.head->pos_y-square.pos_y)*(ben.head->pos_y-square.pos_y) )>=350*350*2  )
+					ben.head->exist=false;
+				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
+				ben.head->pos_x+=ben.head->speed*cosf(ben.head->xita);
+				ben.head->pos_y-=ben.head->speed*sinf(ben.head->xita);
+				ben.head->print_bul_new(ben.head->pos_x,ben.head->pos_y);
+				judge_bullet(5,8,square.pos,ben.head->pos_x, ben.head->pos_y, ben.head->xita);
+				Vector circle_up(ben.head->pos_x-5,ben.head->pos_y-5),circle_down(ben.head->pos_x+5,ben.head->pos_y+5);
+				for(int i=0; i<400; i++)
+					if(room.monster[i].exist==true)
+						if( judge_circle_coll(circle_up,circle_down,room.monster[i].pos,room.monster[i].num_edge)==true  )
+						{	
+							ben.head->exist=false;
+							ben.num_bul=0;
+							ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
+							bomb_hurt();
+							room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+							room.monster[i].exist=false;
+							death_count++;
+							Monster::num_total--;
+							break;
+						}
+			}
+		}
+		else // float
+		{
+
+		}
 	}
 	return;
 }
@@ -744,6 +786,13 @@ void Game::updateWithInput()
 				if(ben.judge_cha_state>2)
 					ben.judge_cha_state=0;
 				ben.print_part_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+			}
+			if(ben.mod==3)
+			{
+				ben.judge_cha_state=1-ben.judge_cha_state;
+				ben.head->exist=false;
+				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
+				ben.num_bul=0;
 			}
 		}
 	}
@@ -968,10 +1017,10 @@ void Game::judge_coll_cha_to_obstacle()
 		if(judge_coll_single(ben.print_chara,7,room.stab[i].pos,5,shadow,num_move)==true)
 		{	
 			if(ben.judge_hurt==-1)
-				{
-					ben.judge_hurt++;
-					ben.life_now--;
-				}
+			{
+				ben.judge_hurt++;
+				ben.life_now--;
+			}
 		}
 	return;
 }
@@ -1077,6 +1126,41 @@ void Game::fresh_room()
 		}
 	}
 }
+void Game::bomb_hurt()
+{
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	::SetDCPenColor(hdc, RGB(255,255,0));
+	::SetDCBrushColor(hdc,RGB(255,255,0));
+	ben.num_count[ben.mod]=0;
+	Ellipse( hdc,ben.head->pos_x-75, ben.head->pos_y-75, ben.head->pos_x+75, ben.head->pos_y+75);
+	Vector circle_up(ben.head->pos_x-75,ben.head->pos_y-75),circle_down(ben.head->pos_x+75,ben.head->pos_y+75);
+	for(int i=0; i<400; i++)
+	{
+		if(room.monster[i].exist==false) continue;
+		if( (room.monster[i].pos_x-ben.head->pos_x)*(room.monster[i].pos_x-ben.head->pos_x)+(room.monster[i].pos_y-ben.head->pos_y)*(room.monster[i].pos_y-ben.head->pos_y)<=75*75  )
+		{	
+			room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+			room.monster[i].exist=false;
+			death_count++;
+			Monster::num_total--;
+			continue;
+		}
+		if( judge_circle_coll(circle_up,circle_down,room.monster[i].pos,room.monster[i].num_edge)==true  )
+		{
+			room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+			room.monster[i].exist=false;
+			death_count++;
+			Monster::num_total--;
+		}
+	}
+	if( ( (ben.pos_x-ben.head->pos_x)*(ben.pos_x-ben.head->pos_x)+(ben.pos_y-ben.head->pos_y)*(ben.pos_y-ben.head->pos_y)<=75*75) || ( judge_circle_coll(circle_up,circle_down,ben.print_chara,7)==true  )  )
+		if(ben.judge_hurt==-1)
+		{
+			ben.judge_hurt++;
+			ben.life_now--;
+		}
+}
 
 //////////// Room ////////////////
 Room::Room()
@@ -1178,11 +1262,9 @@ void Room::update_monster(int x, int y)
 	return;
 }
 void Room::get_path(int x ,int  y, int aim_x, int aim_y, POINT &path)
-{ // x,y为目前位置，目标位置为 (aim_x,aim_y)
+{ 
 	//  特判 若怪物到人路径上无障碍物， 则直线走
-/*	{
-		double k=(aim_y-y)/(aim_x-x);
-		double b=y-k*x;
+	{
 		int i=0;
 		for(; i<num_stab; i++)
 		{
@@ -1195,11 +1277,16 @@ void Room::get_path(int x ,int  y, int aim_x, int aim_y, POINT &path)
 			{if(stab[i].pos_y<= y+Obstacle::r/2 &&stab[i].pos_y>= y-Obstacle::r/2 && stab[i].pos_x<=max(x,aim_x)  &&stab[i].pos_x>=min(x,aim_x) )
 				break;//障碍物位于两者之间
 			}
-			double dis=abs(k*stab[i].pos_x-stab[i].pos_y+b)/(k*k+1);
-			double x1=( 1/k*stab[i].pos_x+stab[i].pos_y-b )/(k+1/k);
-			double y1=k*x1+b;
-			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
-				break;  //障碍物位于两者之间
+			if( abs(aim_x-x)>3 )
+			{
+				double k=(aim_y-y)/(aim_x-x);
+				double b=y-k*x;
+				double dis=abs(k*stab[i].pos_x-stab[i].pos_y+b)/(k*k+1);
+				double x1=( 1/k*stab[i].pos_x+stab[i].pos_y-b )/(k+1/k);
+				double y1=k*x1+b;
+				if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
+					break;  //障碍物位于两者之间
+			}
 		}
 		int j=0;
 		for(; j<num_stone; j++)
@@ -1214,11 +1301,16 @@ void Room::get_path(int x ,int  y, int aim_x, int aim_y, POINT &path)
 				if(stone[j].pos_y<= y+Obstacle::r/2 &&stone[j].pos_y>= y-Obstacle::r/2 && stone[j].pos_x<=max(x,aim_x)  &&stone[j].pos_x>=min(x,aim_x) )
 				break;//障碍物位于两者之间
 			}
-			double dis=abs(k*stone[j].pos_x-stone[j].pos_y+b)/(k*k+1);
-			double x1=( 1/k*stone[j].pos_x+stone[j].pos_y-b )/(k+1/k);
-			double y1=k*x1+b;
-			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
-				break;  //障碍物位于两者之间
+			if( abs(aim_x-x)>3 )
+			{
+				double k=(aim_y-y)/(aim_x-x);
+				double b=y-k*x;
+				double dis=abs(k*stone[j].pos_x-stone[j].pos_y+b)/(k*k+1);
+				double x1=( 1/k*stone[j].pos_x+stone[j].pos_y-b )/(k+1/k);
+				double y1=k*x1+b;
+				if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
+					break;  //障碍物位于两者之间
+			}
 		}
 		if(i==num_stab&&j==num_stone) 
 		{
@@ -1226,7 +1318,7 @@ void Room::get_path(int x ,int  y, int aim_x, int aim_y, POINT &path)
 			path.y=aim_y; 
 			return; 
 		}
-	}*/
+	}
 	//////////////////////////////////////////
 	aim_x=get_i(normalize_x(aim_x)); aim_y=get_j(normalize_y(aim_y));
 	int now_x= get_i(normalize_x(x)), now_y=get_j(normalize_y(y));
@@ -1347,27 +1439,29 @@ Charactor::Charactor() // 默认1号
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
+	num_count[3]=-1;
 	memset(line_array,0,sizeof(line_array));
 	num_line_array=0;
 	mod=1;
 	char temp[]="Benzene";
-	for(int i=0; i<7; i++) name[i]=temp[i];name[8]='\0';
+	for(int i=0; i<7; i++) name[i]=temp[i];name[7]='\0';
 	num_bul=0;
 	head=new Bullet(pos_x,pos_y,0);
 	last=head;
 	head->nex=NULL;
-	range=10;
+	range=20;
 	life_now=life=10;
 }
 void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 {
-	if(judge_hurt!=-1)
+	if(judge_hurt!=-1) // 受伤时闪烁
 	{
 		if(judge_hurt%4==0)
 		{	print_cha_old(x,y,print_chara);
 			return;
 		}
 	}
+	print_cha_old(x,y,print_chara);
 	if(mod==1)
 	{
 		new_point(x,y,print_chara);
@@ -1401,7 +1495,7 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		::SelectObject(hdc,GetStockObject(DC_PEN));
 		::SelectObject(hdc,GetStockObject(DC_BRUSH));
 		print_part_cha_new(x,y,print_chara);
-		if(mod==3) 
+		if(mod==3&&num_bul==0&&judge_cha_state==0) 
 			print_cha_ball(x,y,0);
 		if( !(mod==2&&judge_cha_state==2) )
 			print_cha_line(x,y);
@@ -1426,7 +1520,10 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 					Ellipse(hdc,x-15,y-15,x+15,y+15);
 				}
 			}
-			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			if(mod==3) 
+			{
+				print_cha_line(x,y); 
+			}
 		}
 		else if(GetAsyncKeyState(VK_DOWN)<0) 
 		{	
@@ -1450,7 +1547,10 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 					Ellipse(hdc,x-15,y-15,x+15,y+15);
 				}
 			}
-			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			if(mod==3) 
+			{
+				print_cha_line(x,y); 
+			}
 		}
 		else if(GetAsyncKeyState(VK_LEFT)<0)
 		{	
@@ -1474,7 +1574,10 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 					Ellipse(hdc,x-15,y-15,x+15,y+15);
 				}
 			}
-			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			if(mod==3) 
+			{
+				print_cha_line(x,y); 
+			}
 		}
 		else if(GetAsyncKeyState(VK_RIGHT)<0) 
 		{	
@@ -1497,7 +1600,10 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 					Ellipse(hdc,x-15,y-15,x+15,y+15);
 				}
 			}
-			if(mod==3) {print_cha_line(x,y); print_cha_ball(x,y,0);}
+			if(mod==3) 
+			{
+				print_cha_line(x,y); 
+			}
 		}
 	}
 	::SelectObject(hdc,GetStockObject(DC_PEN));
@@ -1544,8 +1650,12 @@ void Charactor::new_point(double x,double y, POINT print_chara[])
 }
 void Charactor::print_round_new(double x,double y,POINT print_chara[])
 {
-	if( (judge_cha_state!=0&& (mod==1||mod==3) ) || (judge_cha_state==2&&mod==2)  ) { print_cha_new(pos_x,pos_y,print_chara);	 return; }
-	if(Bullet::num_time_count<3) return;
+	if( (judge_cha_state!=0&& (mod==1) ) || (judge_cha_state==2&&mod==2)  ) 
+	{ 
+		print_cha_new(pos_x,pos_y,print_chara);	 
+		return; 
+	}
+	if(Bullet::num_time_count<3 && !( mod==3 && judge_cha_state==1 )) return;
 	Bullet::num_time_count=0;
 	if((GetAsyncKeyState(VK_UP)<0)||(GetAsyncKeyState(VK_DOWN)<0)||(GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{	
@@ -1611,6 +1721,22 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 				return;
 			}
 		}
+		if(mod==3)
+		{
+			if(judge_cha_state==0)
+			{	
+				if(num_bul!=0) return;
+				num_bul=1;
+				if(GetAsyncKeyState(VK_UP)<0) 
+					head=new Bullet(pos_x,pos_y-25,pi/2);
+				if(GetAsyncKeyState(VK_DOWN)<0) 
+					head=new Bullet(pos_x,pos_y+25,pi*3/2);
+				if(GetAsyncKeyState(VK_LEFT)<0) 
+					head=new Bullet(pos_x-25,pos_y,pi+0.1);
+				if(GetAsyncKeyState(VK_RIGHT)<0) 
+					head=new Bullet(pos_x+25,pos_y,0);
+			}
+		}
 	}
 	else
 		print_cha_new(pos_x,pos_y,print_chara);	
@@ -1653,9 +1779,6 @@ void Charactor::print_part_cha_new(double x,double y, POINT print_chara[])
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	return;
 }
-void Charactor::judge_input()
-{
-}
 void Charactor::print_cha_line(double x, double y)
 {
 	if(judge_cha_state==false)
@@ -1671,6 +1794,7 @@ void Charactor::print_cha_line(double x, double y)
 }
 void Charactor::print_cha_ball(double x, double y,bool judge_old)
 {
+	if(mod!=3) return;
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	if(judge_old==0)
@@ -1679,10 +1803,11 @@ void Charactor::print_cha_ball(double x, double y,bool judge_old)
 	{
 		::SetDCPenColor(hdc, RGB(0,0,0));  
 		::SetDCBrushColor(hdc,RGB(0,0,0));
-		Ellipse(hdc,x-10,y-45,x+10,y-25);
-		Ellipse(hdc,x-45,y-10,x-25,y+10);
-		Ellipse(hdc,x-10,y+45,x+10,y+25);
-		Ellipse(hdc,x+45,y-10,x+25,y+10);
+			Ellipse(hdc,x-10,y-45,x+10,y-25);
+			Ellipse(hdc,x-45,y-10,x-25,y+10);
+			Ellipse(hdc,x-10,y+45,x+10,y+25);
+			Ellipse(hdc,x+45,y-10,x+25,y+10);
+		
 	}
 	if(judge_dir==1)
 		Ellipse(hdc,x-10,y-45,x+10,y-25);
@@ -1725,7 +1850,7 @@ void Charactor::set_new_data()
 	{
 		char temp[]="Pyran";
 		for(int i=0; i<5; i++) name[i]=temp[i];name[5]='\0';
-		range=40;
+		range=15;
 	}
 }
 void Charactor::update()
@@ -1746,6 +1871,20 @@ void Charactor::update()
 				num_count[mod]=0;
 				judge_cha_state=0;
 			}
+		}
+	}
+	if(mod==3)
+	{
+		if(num_count[mod]==-1) return;
+		num_count[mod]++;
+		if(num_count[mod]>1)
+		{
+			num_count[mod]=-1;
+			::SelectObject(hdc,GetStockObject(DC_PEN));
+			::SelectObject(hdc,GetStockObject(DC_BRUSH));
+			::SetDCPenColor(hdc, RGB(0,0,0));
+			::SetDCBrushColor(hdc,RGB(0,0,0));
+			Ellipse( hdc,head->pos_x-75, head->pos_y-75, head->pos_x+75,head->pos_y+75);
 		}
 	}
 	return;
@@ -1871,7 +2010,7 @@ Bullet::Bullet(double x,double y,double xi)
 	pos_x=x; pos_y=y;
 	xita=xi;
 	nex=NULL;
-	speed=20;
+	speed=15;
 	exist=true;
 	life=0;
 }
@@ -1879,6 +2018,8 @@ Bullet::Bullet()
 {
 	pos_x=pos_y=0;
 	exist=false;
+	speed=15;
+	nex=NULL;
 	xita=0;
 	life=0;
 }

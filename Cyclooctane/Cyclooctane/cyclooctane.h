@@ -6,6 +6,7 @@
 #include<stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include <windows.h>
 #include <conio.h>
 #include <assert.h>
@@ -75,8 +76,8 @@ public:
 
 	Vector vertical() ; //把向量变成其垂直向量
 	double get_lenth();
-	Vector new_normalize();
-	double dotmulti(Vector a);
+	Vector new_normalize();  // 单位化
+	double dotmulti(Vector a);  // 求内积
 };
 
 struct Bullet
@@ -100,7 +101,7 @@ struct Charactor //角色
 {
 	char name[15];
 	double pos_x,pos_y;
-	int judge_cha_state;   //  后为大招是否使用
+	int judge_cha_state;   //  状态
 	int judge_dir; // 判断此时的常态方向
 	int judge_hurt; // 受伤后无敌一小段时间
 	Bullet *head,*last;
@@ -112,7 +113,7 @@ struct Charactor //角色
 	int life,life_now;
 	POINT print_chara[14];
 	int mod;
-	int num_count[3];
+	int num_count[4];
 public:
 	Charactor();
 	void print_cha_new(double x,double y,POINT print_chara[]);
@@ -120,7 +121,6 @@ public:
 	void new_point(double x,double y, POINT print_chara[]);
 	void print_round_new(double x,double y,POINT print_chara[]);
 	void print_part_cha_new(double x,double y, POINT print_chara[]);
-	void judge_input();
 	void print_cha_line(double x, double y);
 	void print_cha_ball(double x, double y,bool judge_old);
 	void set_new_data();
@@ -245,6 +245,7 @@ public:
 	void judge_coll_mon_to_obstacle();
 	void fresh_map();
 	void fresh_room();
+	void bomb_hurt();
 };
 
 struct Data_Base
