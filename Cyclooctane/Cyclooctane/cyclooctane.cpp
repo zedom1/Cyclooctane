@@ -225,6 +225,46 @@ bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_sec
 	num_move=min_move;
 	return true;  //true代表发生了碰撞
 }
+bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second)
+{
+	int flag=0;
+	Vector edge;   
+	double minx=MAX_DOUBLE;
+	double mid_circle_x=(circle_up.x+circle_down.x)*1.0/2.0,mid_circle_y=(circle_up.y+circle_down.y)*1.0/2.0;
+	for(int i=0; i<num_second ; i++) // 找出多边形与圆心距离最小的点，并将连线作为投影轴
+	{
+		double tot= (mid_circle_x-second[i].x)*(mid_circle_x-second[i].x)+(mid_circle_y-second[i].y)*(mid_circle_y-second[i].y) ;
+		if(tot<minx)
+		{
+			edge.x=mid_circle_x-second[i].x;
+			edge.y=mid_circle_y-second[i].y;
+		}
+	}
+	edge.new_normalize();   // 计算投影轴的单位向量
+
+	double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
+	double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
+
+	{  // 找出子弹在投影轴的投影值
+		double tot=circle_up.dotmulti(edge);
+		maxn_first=max(tot,maxn_first);
+		minx_first=min(tot,minx_first);	
+		tot=circle_down.dotmulti(edge);
+		maxn_first=max(tot,maxn_first);
+		minx_first=min(tot,minx_first);
+	}
+	for(int k=0; k<num_second; k++) //找出多边形在投影轴的投影值
+	{
+		Vector tem(second[k].x,second[k].y);
+		double tot=tem.dotmulti(edge);
+		maxn_second=max(tot,maxn_second);
+		minx_second=min(tot,minx_second);
+	}
+	if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
+		return false;  // false代表没有发生碰撞
+	
+	return true;  //true代表发生了碰撞
+}
 void initi()
 {
 	srand(time(0));
@@ -393,8 +433,19 @@ void Game::clear()
 void Game::show()
 {
 	ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-	if(room.time_count>=room.time_max) return;
-	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+	if(room.time_count<room.time_max)
+		square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+	for(int i=0; i<room.num_stab; i++)
+	{	
+		room.stab[i].count++;
+		room.stab[i].print_now(square.angle);
+		if(room.stab[i].count>room.stab[i].count_max)
+		{	room.stab[i].judge_show=!room.stab[i].judge_show;
+			room.stab[i].count=0;
+		}
+	}
+	for(int i=0; i<room.num_stone; i++)
+		room.stone[i].print_now(square.angle);
 //	square.tester();
 //	square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
 }
@@ -410,126 +461,26 @@ void Game::print_new()
 }
 void Game::updateWithoutInput()
 {
-	room.time_count++;
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	room.time_count++;
 	Bullet::num_time_count++;
-	if(ben.mod==1)
-	{
-		if(ben.judge_cha_state)  // CD
-		{
-			ben.num_count[ben.mod]++;
-			if(ben.num_count[ben.mod]>50)
-			{
-				ben.num_count[ben.mod]=0;
-				ben.judge_cha_state=0;
-			}
-		}
-	}
-	num_monster_fresh++;
-	if(num_monster_fresh>10)
-	{	
-		num_monster_fresh=0;
-		room.monster[Monster::num_count++].create_new_monster();
-		Monster::num_total++;
-		if(Monster::num_count>400)
-			Monster::num_count=0;
-	}
-	//////////////////////////
-	memset(mapp,0,sizeof(mapp));
-	for(int i=0; i<42; i++)   // 实时更新mapp
-		for(int j=0; j<42; j++)
-		{
-			POINT p={ i,j };
-			mapp[i][j].pos=p;
-			mapp[i][j].cal_hx(get_i(normalize_x(ben.pos_x)), get_j(normalize_y(ben.pos_y)));
-			mapp[i][j].ground=0;
-		}
-	for(int i=0; i<room.num_stab; i++)
-	{
-		int tem_x=get_i(normalize_x(room.stab[i].pos_x)),tem_y=get_j(normalize_y(room.stab[i].pos_y));
-	//	mapp[tem_x][tem_y].ground=1;
-		for(int j=tem_x-1; j<=tem_x+1; j++)
-			for(int k=tem_y-1; k<=tem_y+1; k++)
-			{
-		//		if(j==tem_x&& k==tem_y) continue;
-				mapp[j][k].ground+=20;
-			}
-	}
-	for(int i=0; i<room.num_stone; i++)
-	{
-		int tem_x=get_i(normalize_x(room.stone[i].pos_x)),tem_y=get_j(normalize_y(room.stone[i].pos_y));
-		mapp[tem_x][tem_y].ground+=20;
-		for(int j=tem_x-1; j<=tem_x+1; j++)
-			for(int k=tem_y-1; k<=tem_y+1; k++)
-			{
-				if(j==tem_x&& k==tem_y) continue;
-				mapp[j][k].ground+=10;
-			}
-	}
-//	for(int i=0; i<Monster::num_count; i++)
-	//	mapp[get_i(normalize_x(room.monster[i].pos_x))][get_j(normalize_y(room.monster[i].pos_y))].ground+=20;
-	mapp[get_i(normalize_x(ben.pos_x))][get_j(normalize_y(ben.pos_y))].ground=3;
-	/////////////////////////
-	for(int i=0 ; i<400; i++)
-		if(room.monster[i].exist==true)
-		{
-			get_path(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].path);
-			room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
-			Vector tem(room.monster[i].path.x-room.monster[i].pos_x,room.monster[i].path.y-room.monster[i].pos_y);
-			tem.new_normalize();
-		/*	if((room.monster[i].path.y-room.monster[i].pos_y<2))
-			{	tem.y=0;  tem.x=1;}
-			if((room.monster[i].path.x-room.monster[i].pos_x)<2)
-			{	tem.x=0;  tem.y=1;}
-			if(( (room.monster[i].path.x-room.monster[i].pos_x)<2)&&( (room.monster[i].path.y-room.monster[i].pos_y<2)))
-				tem.x=tem.y=0;  */
-			room.monster[i].pos_x+= tem.x*room.monster[i].speed;
-			room.monster[i].pos_y+= tem.y*room.monster[i].speed;
-			room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
-			if(room.time_count>=room.time_max) 
-				room.monster[i].speed+=0.1;
-		}
-	update_bullet();
+	
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
 	judge_coll_chara_to_wall();
-	judge_coll_cha_to_corner();
+	judge_coll_cha_to_obstacle();
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
+	fresh_room();
+	//////// update ///////////
+	ben.update();
+	fresh_map();
+	room.update_monster(ben.pos_x, ben.pos_y);
+	update_bullet();
+
+	//////// judge  collision ////////
 	
-	for(int i=0; i<room.num_stab; i++)
-	{	
-		room.stab[i].count++;
-		room.stab[i].print_now(square.angle);
-		if(room.stab[i].count>room.stab[i].count_max)
-		{	room.stab[i].judge_show=!room.stab[i].judge_show;
-			room.stab[i].count=0;
-		}
-	}
-	for(int i=0; i<room.num_stone; i++)
-		room.stone[i].print_now(square.angle);
-	if(room.time_count>=room.time_max) 
-	{	
-		Vector tem; double tem1;
-		square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
-		room.new_door(room.door,square.angle);
-		if(judge_coll_single(ben.print_chara,7,room.door,5,tem,tem1)==true   )
-		{
-			memset(room.monster,0,sizeof(room.monster));
-			Monster::num_total=0;
-			Monster::num_count=0;
-			Game::clear();
-			room.new_room(room_count);
-			room_count++;
-			judge_update=0;
-			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
-			ben.pos_x=2*square.pos_x-ben.pos_x;
-			ben.pos_y=2*square.pos_y-ben.pos_y;
-			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
-			room.time_count=0;
-		}
-	}
 	
 }
 void Game::update_bullet()
@@ -897,46 +848,6 @@ bool Game::judge_coll_chara_to_wall()
 	}
 	return flag==1;
 }
-bool Game::judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second)
-{
-	int flag=0;
-	Vector edge;   
-	double minx=MAX_DOUBLE;
-	double mid_circle_x=(circle_up.x+circle_down.x)*1.0/2.0,mid_circle_y=(circle_up.y+circle_down.y)*1.0/2.0;
-	for(int i=0; i<num_second ; i++) // 找出多边形与圆心距离最小的点，并将连线作为投影轴
-	{
-		double tot= (mid_circle_x-second[i].x)*(mid_circle_x-second[i].x)+(mid_circle_y-second[i].y)*(mid_circle_y-second[i].y) ;
-		if(tot<minx)
-		{
-			edge.x=mid_circle_x-second[i].x;
-			edge.y=mid_circle_y-second[i].y;
-		}
-	}
-	edge.new_normalize();   // 计算投影轴的单位向量
-
-	double maxn_first=MIN_DOUBLE,minx_first=MAX_DOUBLE;
-	double maxn_second=MIN_DOUBLE,minx_second=MAX_DOUBLE;
-
-	{  // 找出子弹在投影轴的投影值
-		double tot=circle_up.dotmulti(edge);
-		maxn_first=max(tot,maxn_first);
-		minx_first=min(tot,minx_first);	
-		tot=circle_down.dotmulti(edge);
-		maxn_first=max(tot,maxn_first);
-		minx_first=min(tot,minx_first);
-	}
-	for(int k=0; k<num_second; k++) //找出多边形在投影轴的投影值
-	{
-		Vector tem(second[k].x,second[k].y);
-		double tot=tem.dotmulti(edge);
-		maxn_second=max(tot,maxn_second);
-		minx_second=min(tot,minx_second);
-	}
-	if( (minx_second>maxn_first) || (minx_first>maxn_second)   )  // 代表中间有空隙
-		return false;  // false代表没有发生碰撞
-	
-	return true;  //true代表发生了碰撞
-}
 void Game::judge_coll_mon_to_wall()
 {
 	Vector shadow;
@@ -996,6 +907,11 @@ void Game::judge_coll_cha_to_mon()
 				room.monster[i].pos_x-=shadow.x*num_move;
 				room.monster[i].pos_y-=shadow.y*num_move;
 				room.monster[i].print_now(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+				if(ben.judge_hurt==-1)
+				{
+					ben.judge_hurt++;
+					ben.life_now--;
+				}
 			}
 		}
 	return ;
@@ -1036,7 +952,7 @@ void Game::judge_coll_corner(double& pos_x,double& pos_y, POINT second[], int nu
 	}
 	return;
 }
-void Game::judge_coll_cha_to_corner()
+void Game::judge_coll_cha_to_obstacle()
 {
 	Vector shadow;
 	double num_move=0;
@@ -1047,6 +963,15 @@ void Game::judge_coll_cha_to_corner()
 			ben.pos_x-=shadow.x*(num_move);
 			ben.pos_y-=shadow.y*(num_move);
 			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+		}
+	for(int i=0; i<room.num_stab; i++)
+		if(judge_coll_single(ben.print_chara,7,room.stab[i].pos,5,shadow,num_move)==true)
+		{	
+			if(ben.judge_hurt==-1)
+				{
+					ben.judge_hurt++;
+					ben.life_now--;
+				}
 		}
 	return;
 }
@@ -1092,58 +1017,218 @@ void Game::judge_coll_mon_to_obstacle()
 		}
 	}
 }
-void Game::get_path(double x ,double  y, POINT &path)
-{ // x,y为目前位置，目标位置为 (ben.pos_x,ben.pos_y)
-	//  特判 若怪物到人路径上无障碍物， 则直线走
+void Game::fresh_map()
+{
+	memset(mapp,0,sizeof(mapp));
+	for(int i=0; i<42; i++)   // 实时更新mapp
+		for(int j=0; j<42; j++)
+		{
+			POINT p={ i,j };
+			mapp[i][j].pos=p;
+			mapp[i][j].cal_hx(get_i(normalize_x(ben.pos_x)), get_j(normalize_y(ben.pos_y)));
+			mapp[i][j].ground=0;
+		}
+	for(int i=0; i<room.num_stab; i++)
 	{
-		double k=(ben.pos_y-y)/(ben.pos_x-x);
+		int tem_x=get_i(normalize_x(room.stab[i].pos_x)),tem_y=get_j(normalize_y(room.stab[i].pos_y));
+	//	mapp[tem_x][tem_y].ground=1;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+		//		if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=20;
+			}
+	}
+	for(int i=0; i<room.num_stone; i++)
+	{
+		int tem_x=get_i(normalize_x(room.stone[i].pos_x)),tem_y=get_j(normalize_y(room.stone[i].pos_y));
+		mapp[tem_x][tem_y].ground+=20;
+		for(int j=tem_x-1; j<=tem_x+1; j++)
+			for(int k=tem_y-1; k<=tem_y+1; k++)
+			{
+				if(j==tem_x&& k==tem_y) continue;
+				mapp[j][k].ground+=10;
+			}
+	}
+	mapp[get_i(normalize_x(ben.pos_x))][get_j(normalize_y(ben.pos_y))].ground=3;
+	return ;
+}
+void Game::fresh_room()
+{
+	if(room.time_count>=room.time_max) 
+	{	
+		Vector tem; double tem1;
+		square.paint_room_new(square.pos_x,square.pos_y,square.pos,square.angle);
+		room.new_door(room.door,square.angle);
+		if(judge_coll_single(ben.print_chara,7,room.door,5,tem,tem1)==true   )
+		{
+			memset(room.monster,0,sizeof(room.monster));
+			Monster::num_total=0;
+			Monster::num_count=0;
+			Game::clear();
+			room.new_room(room_count);
+			room_count++;
+			judge_update=0;
+			ben.print_cha_old(ben.pos_x,ben.pos_y,ben.print_chara);
+			ben.pos_x=2*square.pos_x-ben.pos_x;
+			ben.pos_y=2*square.pos_y-ben.pos_y;
+			ben.print_cha_new(ben.pos_x,ben.pos_y,ben.print_chara);
+			room.time_count=0;
+		}
+	}
+}
+
+//////////// Room ////////////////
+Room::Room()
+{
+	new_room(0);
+}
+Room::~Room(){}
+void Room::new_door(POINT door[], double angle)
+{
+	int squ_x=900,squ_y=495;
+	double r1=sqrt(375*375*2),r2=sqrt(350*350*2);
+	double x1=(sin(pi/4.0)/sin(5.0/8.0*pi))*r1-10,x2=(sin(pi/4.0)/sin(5.0/8.0*pi))*r2-10;
+	double rand_angle=pi/2*rand_c;
+	POINT door11[]=
+	{
+		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle),
+		squ_x+x1*cos(3.0/8.0*pi-pi/110.0+rand_angle+pi/4.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle)-1,
+		squ_x+x2*cos(3.0/8.0*pi+rand_angle+pi/4.0+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle),
+		squ_x+x2*cos(3.0/8.0*pi+rand_angle+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+angle),
+		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle)
+	};
+	for(int i=0; i<5; i++)
+	{
+		door[i].x=door11[i].x;
+		door[i].y=door11[i].y;
+	}
+	::SelectObject(hdc,GetStockObject(DC_PEN));
+	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	::SetDCPenColor(hdc, RGB(255,0,0));
+	::SetDCBrushColor(hdc,RGB(255,0,0));
+	Polygon(hdc,door ,5);
+}
+void Room::new_room(int a)
+{
+	num_stab=rand()%3+2;
+	stab=new Stab[num_stab];
+	num_stone=rand()%4+2;
+	stone=new Stone[num_stone];
+	time_count=0;
+	rand_c=rand()%4;
+	time_max=200+a*20+(rand()%2-1)*40;
+	for(int i=0; i<num_stab; i++)
+	{
+		for(int j=0; j<num_stab; j++)
+		{
+			if(i==j) continue;
+			if( ((stab[i].pos_x-stab[j].pos_x)*(stab[i].pos_x-stab[j].pos_x)+(stab[i].pos_y-stab[j].pos_y)*(stab[i].pos_y-stab[j].pos_y))  <=3200  )
+				stab[i].reset();
+		}
+		for(int j=0; j<num_stone; j++)
+			if( ((stab[i].pos_x-stone[j].pos_x)*(stab[i].pos_x-stone[j].pos_x)+(stab[i].pos_y-stone[j].pos_y)*(stab[i].pos_y-stone[j].pos_y))  <=3200  )
+				stone[j].reset();
+	}
+	for(int i=0 ; i<num_stone; i++)
+	{
+		for(int j=0; j<num_stone; j++)
+		{
+			if(i==j) continue;
+			if( ((stone[i].pos_x-stone[j].pos_x)*(stone[i].pos_x-stone[j].pos_x)+(stone[i].pos_y-stone[j].pos_y)*(stone[i].pos_y-stone[j].pos_y))  <=3200  )
+				stone[i].reset();
+		}
+	}
+	Bullet::num_time_count=0;
+	Monster::num_count=0;
+	Monster::num_total=0;
+	num_monster_fresh=0;
+	
+}
+void Room::update_monster(int x, int y)
+{
+	num_monster_fresh++;
+	if(num_monster_fresh>10)
+	{	
+		num_monster_fresh=0;
+		monster[Monster::num_count++].create_new_monster();
+		Monster::num_total++;
+		if(Monster::num_count>400)
+			Monster::num_count=0;
+	}
+	for(int i=0 ; i<400; i++)
+		if(monster[i].exist==true)
+		{
+			get_path(monster[i].pos_x,monster[i].pos_y,x,y,monster[i].path);
+			monster[i].print_old(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			Vector tem(monster[i].path.x-monster[i].pos_x,monster[i].path.y-monster[i].pos_y);
+			tem.new_normalize();
+		/*	if((monster[i].path.y-monster[i].pos_y<2))
+			{	tem.y=0;  tem.x=1;}
+			if((monster[i].path.x-monster[i].pos_x)<2)
+			{	tem.x=0;  tem.y=1;}
+			if(( (monster[i].path.x-monster[i].pos_x)<2)&&( (monster[i].path.y-monster[i].pos_y<2)))
+				tem.x=tem.y=0;  */
+			monster[i].pos_x+= tem.x*monster[i].speed;
+			monster[i].pos_y+= tem.y*monster[i].speed;
+			monster[i].print_now(monster[i].pos_x,monster[i].pos_y,monster[i].num_edge,monster[i].pos);
+			if(time_count>=time_max) 
+				monster[i].speed+=0.05;
+		}
+	return;
+}
+void Room::get_path(int x ,int  y, int aim_x, int aim_y, POINT &path)
+{ // x,y为目前位置，目标位置为 (aim_x,aim_y)
+	//  特判 若怪物到人路径上无障碍物， 则直线走
+/*	{
+		double k=(aim_y-y)/(aim_x-x);
 		double b=y-k*x;
 		int i=0;
-		for(; i<room.num_stab; i++)
+		for(; i<num_stab; i++)
 		{
-			if(abs(ben.pos_x-x)<5)
+			if(abs(aim_x-x)<5)
 			{
-				if(room.stab[i].pos_x<= x+Obstacle::r/2 &&room.stab[i].pos_x>= x-Obstacle::r/2 && room.stab[i].pos_y<=max(y,ben.pos_y)  &&room.stab[i].pos_y>=min(y,ben.pos_y) )
+				if(  (stab[i].pos_x<= x+Obstacle::r/2) && (stab[i].pos_x>= x-Obstacle::r/2) && (stab[i].pos_y<=max(y,aim_y))  && (stab[i].pos_y>=min(y,aim_y)) )
 				break;//障碍物位于两者之间
 			}
-			if(abs(ben.pos_y-y)<5)
-			{if(room.stab[i].pos_y<= y+Obstacle::r/2 &&room.stab[i].pos_y>= y-Obstacle::r/2 && room.stab[i].pos_x<=max(x,ben.pos_x)  &&room.stab[i].pos_x>=min(x,ben.pos_x) )
+			if(abs(aim_y-y)<5)
+			{if(stab[i].pos_y<= y+Obstacle::r/2 &&stab[i].pos_y>= y-Obstacle::r/2 && stab[i].pos_x<=max(x,aim_x)  &&stab[i].pos_x>=min(x,aim_x) )
 				break;//障碍物位于两者之间
 			}
-			double dis=abs(k*room.stab[i].pos_x-room.stab[i].pos_y+b)/(k*k+1);
-			double x1=( 1/k*room.stab[i].pos_x+room.stab[i].pos_y-b )/(k+1/k);
+			double dis=abs(k*stab[i].pos_x-stab[i].pos_y+b)/(k*k+1);
+			double x1=( 1/k*stab[i].pos_x+stab[i].pos_y-b )/(k+1/k);
 			double y1=k*x1+b;
-			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(ben.pos_x,x)))  ) && ( x1<=max(ben.pos_x,x))) ) 
+			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
 				break;  //障碍物位于两者之间
 		}
 		int j=0;
-		for(; j<room.num_stone; j++)
+		for(; j<num_stone; j++)
 		{
-			if(abs(ben.pos_x-x)<5)
+			if(abs(aim_x-x)<5)
 			{
-				if(room.stone[j].pos_x<= x+Obstacle::r/2 &&room.stone[j].pos_x>= x-Obstacle::r/2 && room.stone[j].pos_y<=max(y,ben.pos_y)  &&room.stone[j].pos_y>=min(y,ben.pos_y) )
+				if(stone[j].pos_x<= x+Obstacle::r/2 &&stone[j].pos_x>= x-Obstacle::r/2 && stone[j].pos_y<=max(y,aim_y)  &&stone[j].pos_y>=min(y,aim_y) )
 				break;//障碍物位于两者之间
 			}
-			if(abs(ben.pos_y-y)<5)
+			if(abs(aim_y-y)<5)
 			{
-				if(room.stone[j].pos_y<= y+Obstacle::r/2 &&room.stone[j].pos_y>= y-Obstacle::r/2 && room.stone[j].pos_x<=max(x,ben.pos_x)  &&room.stone[j].pos_x>=min(x,ben.pos_x) )
+				if(stone[j].pos_y<= y+Obstacle::r/2 &&stone[j].pos_y>= y-Obstacle::r/2 && stone[j].pos_x<=max(x,aim_x)  &&stone[j].pos_x>=min(x,aim_x) )
 				break;//障碍物位于两者之间
 			}
-			double dis=abs(k*room.stone[j].pos_x-room.stone[j].pos_y+b)/(k*k+1);
-			double x1=( 1/k*room.stone[j].pos_x+room.stone[j].pos_y-b )/(k+1/k);
+			double dis=abs(k*stone[j].pos_x-stone[j].pos_y+b)/(k*k+1);
+			double x1=( 1/k*stone[j].pos_x+stone[j].pos_y-b )/(k+1/k);
 			double y1=k*x1+b;
-			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(ben.pos_x,x)))  ) && ( x1<=max(ben.pos_x,x))) ) 
+			if(  (dis<=(1.4*Obstacle::r+0)) &&  (   ((  (x1>=min(aim_x,x)))  ) && ( x1<=max(aim_x,x))) ) 
 				break;  //障碍物位于两者之间
 		}
-		if(i==room.num_stab&&j==room.num_stone) 
+		if(i==num_stab&&j==num_stone) 
 		{
-			path.x=ben.pos_x; 
-			path.y=ben.pos_y; 
+			path.x=aim_x; 
+			path.y=aim_y; 
 			return; 
 		}
-	}
+	}*/
 	//////////////////////////////////////////
-	int aim_x=get_i(normalize_x(ben.pos_x)),aim_y=get_j(normalize_y(ben.pos_y));
+	aim_x=get_i(normalize_x(aim_x)); aim_y=get_j(normalize_y(aim_y));
 	int now_x= get_i(normalize_x(x)), now_y=get_j(normalize_y(y));
 	int mon_x=get_i(normalize_x(x)),mon_y=get_j(normalize_y(y));
 	int count=0;
@@ -1151,7 +1236,6 @@ void Game::get_path(double x ,double  y, POINT &path)
 		for(int j=0; j<42; j++)
 			mapp[i][j].gx=0;
 	//////////////////////////////////////
-	
 	POINT aim={ aim_x ,aim_y };
 	POINT start_point={now_x , now_y};
 	Node OPEN[10000],CLOSE[10000];
@@ -1231,8 +1315,8 @@ while(findd==false)
 	count++;    // 异常状态弹出
 	if(count>9600)
 	{
-		path.x=ben.pos_x;
-		path.y=ben.pos_y;
+		path.x=aim_x;
+		path.y=aim_y;
 		return;
 	}
 }
@@ -1245,79 +1329,11 @@ while(findd==false)
 		temp=mapp[temp.fa.x][temp.fa.y];   // 回溯至父节点
 		count++;
 		if(count>9600)
-		{path.x=ben.pos_x;path.y=ben.pos_y;return;}
+		{path.x=aim_x;path.y=aim_y;return;}
 	}
 	POINT ans={ get_x_from_i(PATH[end_path-1].x) , get_y_from_j(PATH[end_path-1].y) };
 	path=ans;
 	return;
-}
-
-//////////// Room ////////////////
-Room::Room()
-{
-	new_room(0);
-}
-Room::~Room(){}
-void Room::new_door(POINT door[], double angle)
-{
-	int squ_x=900,squ_y=495;
-	double r1=sqrt(375*375*2),r2=sqrt(350*350*2);
-	double x1=(sin(pi/4.0)/sin(5.0/8.0*pi))*r1-10,x2=(sin(pi/4.0)/sin(5.0/8.0*pi))*r2-10;
-	double rand_angle=pi/2*rand_c;
-	POINT door11[]=
-	{
-		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle),
-		squ_x+x1*cos(3.0/8.0*pi-pi/110.0+rand_angle+pi/4.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle)-1,
-		squ_x+x2*cos(3.0/8.0*pi+rand_angle+pi/4.0+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+pi/4.0+angle),
-		squ_x+x2*cos(3.0/8.0*pi+rand_angle+angle), squ_y-x2*sin(3.0/8.0*pi+rand_angle+angle),
-		squ_x+x1*cos(3.0/8.0*pi+rand_angle+pi/110.0+angle), squ_y-x1*sin(3.0/8.0*pi+rand_angle+angle)
-	};
-	for(int i=0; i<5; i++)
-	{
-		door[i].x=door11[i].x;
-		door[i].y=door11[i].y;
-	}
-	::SelectObject(hdc,GetStockObject(DC_PEN));
-	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	::SetDCPenColor(hdc, RGB(255,0,0));
-	::SetDCBrushColor(hdc,RGB(255,0,0));
-	Polygon(hdc,door ,5);
-}
-void Room::new_room(int a)
-{
-	num_stab=rand()%3+2;
-	stab=new Stab[num_stab];
-	num_stone=rand()%4+2;
-	stone=new Stone[num_stone];
-	time_count=0;
-	rand_c=rand()%4;
-	time_max=200+a*20+(rand()%2-1)*40;
-	for(int i=0; i<num_stab; i++)
-	{
-		for(int j=0; j<num_stab; j++)
-		{
-			if(i==j) continue;
-			if( ((stab[i].pos_x-stab[j].pos_x)*(stab[i].pos_x-stab[j].pos_x)+(stab[i].pos_y-stab[j].pos_y)*(stab[i].pos_y-stab[j].pos_y))  <=3200  )
-				stab[i].reset();
-		}
-		for(int j=0; j<num_stone; j++)
-			if( ((stab[i].pos_x-stone[j].pos_x)*(stab[i].pos_x-stone[j].pos_x)+(stab[i].pos_y-stone[j].pos_y)*(stab[i].pos_y-stone[j].pos_y))  <=3200  )
-				stone[j].reset();
-	}
-	for(int i=0 ; i<num_stone; i++)
-	{
-		for(int j=0; j<num_stone; j++)
-		{
-			if(i==j) continue;
-			if( ((stone[i].pos_x-stone[j].pos_x)*(stone[i].pos_x-stone[j].pos_x)+(stone[i].pos_y-stone[j].pos_y)*(stone[i].pos_y-stone[j].pos_y))  <=3200  )
-				stone[i].reset();
-		}
-	}
-	Bullet::num_time_count=0;
-	Monster::num_count=0;
-	Monster::num_total=0;
-	num_monster_fresh=0;
-	
 }
 
 /////////// Charactor ////////////////
@@ -1327,6 +1343,7 @@ Charactor::Charactor() // 默认1号
 	pos_y=495;
 	speed=10;
 	judge_cha_state=0;
+	judge_hurt=-1;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
@@ -1344,6 +1361,13 @@ Charactor::Charactor() // 默认1号
 }
 void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 {
+	if(judge_hurt!=-1)
+	{
+		if(judge_hurt%4==0)
+		{	print_cha_old(x,y,print_chara);
+			return;
+		}
+	}
 	if(mod==1)
 	{
 		new_point(x,y,print_chara);
@@ -1406,7 +1430,8 @@ void Charactor::print_cha_new(double x,double y,POINT print_chara[])
 		}
 		else if(GetAsyncKeyState(VK_DOWN)<0) 
 		{	
-			print_cha_old(x,y,print_chara);judge_dir=3;
+			print_cha_old(x,y,print_chara);
+			judge_dir=3;
 			print_part_cha_new(x,y,print_chara);
 			if(mod==2)
 			{
@@ -1675,6 +1700,7 @@ void Charactor::set_new_data()
 	speed=10;
 	life_now=life=10;
 	judge_cha_state=false;
+	judge_hurt=-1;
 	judge_dir=1;
 	new_point(pos_x,pos_y,print_chara);
 	memset(num_count,0,sizeof(num_count));
@@ -1701,6 +1727,28 @@ void Charactor::set_new_data()
 		for(int i=0; i<5; i++) name[i]=temp[i];name[5]='\0';
 		range=40;
 	}
+}
+void Charactor::update()
+{
+	if(judge_hurt!=-1)
+	{
+		judge_hurt++;
+		if(judge_hurt>20)
+			judge_hurt=-1;
+	}
+	if(mod==1)
+	{
+		if(judge_cha_state)  // CD
+		{
+			num_count[mod]++;
+			if(num_count[mod]>50)
+			{
+				num_count[mod]=0;
+				judge_cha_state=0;
+			}
+		}
+	}
+	return;
 }
 
 /////////// Square ////////////////
@@ -2046,7 +2094,7 @@ void Stab::reset()
 {
 	judge_show=true;
 	count=rand()%5;
-	count_max=rand()%7+3;
+	count_max=rand()%7+15;
 	int c=rand()%3;
 	if(c==2) count_max=MAX_INT;
 	int rand1=rand()%2-1,rand2=rand()%2-1;
@@ -2317,7 +2365,7 @@ void ON_GAME::eventt()
 		{
 			gamestatus=4; break;
 		}
-		if(cyclooctane.ben.life==0)
+		if(cyclooctane.ben.life_now<=0)
 		{
 			gamestatus=5; break;
 		}
@@ -2524,7 +2572,15 @@ void CHANGE::eventt()
 		if(_kbhit())
 		{
 			char aaa=_getch();
-			if(aaa==27) break;
+			if(aaa==27) 
+			{
+				Game::clear();
+				new_data.set_data(cyclooctane);
+				new_data.fresh_data();
+				new_data.store_data(cyclooctane);
+				FSM::current=transition(3);
+				return;
+			}
 			if(aaa=='\r') {gamestatus=3;break;}
 			if(aaa=='a'||aaa=='d')
 			{

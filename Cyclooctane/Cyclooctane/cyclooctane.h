@@ -102,6 +102,7 @@ struct Charactor //½ÇÉ«
 	double pos_x,pos_y;
 	int judge_cha_state;   //  ºóÎª´óÕĞÊÇ·ñÊ¹ÓÃ
 	int judge_dir; // ÅĞ¶Ï´ËÊ±µÄ³£Ì¬·½Ïò
+	int judge_hurt; // ÊÜÉËºóÎŞµĞÒ»Ğ¡¶ÎÊ±¼ä
 	Bullet *head,*last;
 	Bullet line,last_line;
 	POINT line_array[100];
@@ -123,6 +124,7 @@ public:
 	void print_cha_line(double x, double y);
 	void print_cha_ball(double x, double y,bool judge_old);
 	void set_new_data();
+	void update();
 	// void set_old_data();
 };
 
@@ -210,6 +212,8 @@ public:
 	int time_max;//¡¡Ê±¼äÉÏÏŞ£¬Ã¿¸ö·¿¼äËæ»úÉú³É£¬µ«×ÜÌåËæ´³¹Ø½øĞĞ¶øÉÏÉı
 	void new_room(int a);// ĞÂ·¿¼ä
 	void new_door(POINT door[], double angle);// Éú³É²¢»­ÃÅ
+	void update_monster(int x, int y);
+	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path);
 };
 
 struct Game
@@ -232,16 +236,15 @@ public:
 	void update_bullet();
 	bool judge_coll_chara_to_wall();
 	void print_new();
-	bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
 	void judge_coll_mon_to_wall();
 	void judge_coll_cha_to_mon();
 	void judge_coll_mon_to_mon();
 	void judge_coll_corner(double &pos_x, double& pos_y, POINT second[], int num_second, double center_x, double center_y);
-	void judge_coll_cha_to_corner();
+	void judge_coll_cha_to_obstacle();
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
-	void get_path(double x ,double  y, POINT &path);
 	void fresh_map();
+	void fresh_room();
 };
 
 struct Data_Base
@@ -334,4 +337,5 @@ bool judge_coll_line(POINT a , POINT b, POINT c, POINT d, POINT &cut);  // Ïß¶ÎÏ
 void initi();  // ´°Ìå³õÊ¼»¯
 double point_to_line(POINT a, POINT head, POINT last); // µãµ½Ïß¶Î¾àÀë
 bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // Åö×²¼ì²â
+bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
 #endif
