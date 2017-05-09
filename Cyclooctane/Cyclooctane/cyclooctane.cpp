@@ -465,26 +465,29 @@ void Game::updateWithoutInput()
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	room.time_count++;
 	Bullet::num_time_count++;
-	
 	judge_coll_cha_to_mon();
 	judge_coll_mon_to_mon();
 	judge_coll_chara_to_wall();
 	judge_coll_cha_to_obstacle();
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
-	fresh_room();
+	
+	
 	//////// update ///////////
 	ben.update();
+
+		update_bullet();
 	fresh_map();
 	room.update_monster(ben.pos_x, ben.pos_y);
-	update_bullet();
-
+	fresh_room();
 	//////// judge  collision ////////
 	
 	
 }
 void Game::update_bullet()
 {
+	if(  (room.time_count>=room.time_max) && ben.mod==3 && ben.judge_cha_state==1 )
+		return ;
 	if(ben.mod==1)
 	{
 		if(ben.last!=ben.head)
@@ -724,18 +727,29 @@ void Game::update_bullet()
 							ben.head->exist=false;
 							ben.num_bul=0;
 							ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
-							bomb_hurt();
 							room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
 							room.monster[i].exist=false;
 							death_count++;
 							Monster::num_total--;
+							bomb_hurt();
 							break;
 						}
 			}
 		}
 		else // float
 		{
-
+			ben.head->print_bul_new(ben.head->pos_x,ben.head->pos_y);
+			Vector circle_up(ben.head->pos_x-30,ben.head->pos_y-30),circle_down(ben.head->pos_x+30,ben.head->pos_y+30);
+			judge_bullet(5,8,square.pos,ben.head->pos_x, ben.head->pos_y, ben.head->xita);
+			for(int i=0; i<400; i++)
+				if(room.monster[i].exist==true)
+					if( judge_circle_coll(circle_up,circle_down,room.monster[i].pos,room.monster[i].num_edge)==true  )
+					{	
+						room.monster[i].print_old(room.monster[i].pos_x,room.monster[i].pos_y,room.monster[i].num_edge,room.monster[i].pos);
+						room.monster[i].exist=false;
+						death_count++;
+						Monster::num_total--;
+					}
 		}
 	}
 	return;
@@ -789,10 +803,17 @@ void Game::updateWithInput()
 			}
 			if(ben.mod==3)
 			{
-				ben.judge_cha_state=1-ben.judge_cha_state;
-				ben.head->exist=false;
 				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
-				ben.num_bul=0;
+				ben.head->special=!ben.head->special;
+				ben.head->exist=true;
+				if(ben.judge_cha_state!=0)
+					ben.num_bul=0;
+				else
+				{
+					ben.head->pos_x=ben.pos_x;
+					ben.head->pos_y=ben.pos_y;
+				}
+				ben.judge_cha_state=1-ben.judge_cha_state;
 			}
 		}
 	}
@@ -1104,6 +1125,8 @@ void Game::fresh_map()
 }
 void Game::fresh_room()
 {
+	if(room.time_count==room.time_max) 
+		ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
 	if(room.time_count>=room.time_max) 
 	{	
 		Vector tem; double tem1;
@@ -1133,7 +1156,6 @@ void Game::bomb_hurt()
 	::SetDCPenColor(hdc, RGB(255,255,0));
 	::SetDCBrushColor(hdc,RGB(255,255,0));
 	ben.num_count[ben.mod]=0;
-	Ellipse( hdc,ben.head->pos_x-75, ben.head->pos_y-75, ben.head->pos_x+75, ben.head->pos_y+75);
 	Vector circle_up(ben.head->pos_x-75,ben.head->pos_y-75),circle_down(ben.head->pos_x+75,ben.head->pos_y+75);
 	for(int i=0; i<400; i++)
 	{
@@ -1160,6 +1182,9 @@ void Game::bomb_hurt()
 			ben.judge_hurt++;
 			ben.life_now--;
 		}
+	::SetDCPenColor(hdc, RGB(255,255,0));
+	::SetDCBrushColor(hdc,RGB(255,255,0));
+	Ellipse( hdc,ben.head->pos_x-75, ben.head->pos_y-75, ben.head->pos_x+75, ben.head->pos_y+75);
 }
 
 //////////// Room ////////////////
@@ -1725,7 +1750,7 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 		{
 			if(judge_cha_state==0)
 			{	
-				if(num_bul!=0) return;
+				if(num_bul!=0 ) return;
 				num_bul=1;
 				if(GetAsyncKeyState(VK_UP)<0) 
 					head=new Bullet(pos_x,pos_y-25,pi/2);
@@ -1735,6 +1760,19 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 					head=new Bullet(pos_x-25,pos_y,pi+0.1);
 				if(GetAsyncKeyState(VK_RIGHT)<0) 
 					head=new Bullet(pos_x+25,pos_y,0);
+			}
+			else
+			{
+				head->print_bul_old(head->pos_x,head->pos_y);
+				if(GetAsyncKeyState(VK_UP)<0) 
+					head->pos_y-=head->speed/2;
+				if(GetAsyncKeyState(VK_DOWN)<0) 
+					head->pos_y+=head->speed/2;
+				if(GetAsyncKeyState(VK_LEFT)<0) 
+					head->pos_x-=head->speed/2;
+				if(GetAsyncKeyState(VK_RIGHT)<0) 
+					head->pos_x+=head->speed/2;
+				head->print_bul_new(head->pos_x,head->pos_y);
 			}
 		}
 	}
@@ -2013,12 +2051,14 @@ Bullet::Bullet(double x,double y,double xi)
 	speed=15;
 	exist=true;
 	life=0;
+	special=false;
 }
 Bullet::Bullet()
 {
 	pos_x=pos_y=0;
 	exist=false;
 	speed=15;
+	special=false;
 	nex=NULL;
 	xita=0;
 	life=0;
@@ -2029,7 +2069,10 @@ void Bullet::print_bul_new(double pos_x, double pos_y)
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(100,210,140));
 	::SetDCBrushColor(hdc,RGB(100,210,140));
-	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+	if(special==false)
+		Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+	else
+		Ellipse( hdc, pos_x-30, pos_y-30, pos_x+30, pos_y+30);
 }
 void Bullet::print_bul_old(double pos_x, double pos_y)
 {
@@ -2037,7 +2080,10 @@ void Bullet::print_bul_old(double pos_x, double pos_y)
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	::SetDCPenColor(hdc, RGB(0,0,0));
 	::SetDCBrushColor(hdc,RGB(0,0,0));
-	Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+	if(special==false)
+		Ellipse( hdc, pos_x-5, pos_y-5, pos_x+5, pos_y+5);
+	else
+		Ellipse( hdc, pos_x-30, pos_y-30, pos_x+30, pos_y+30);
 }
 void Bullet::operator =(Bullet a)
 {
@@ -2612,21 +2658,51 @@ void MENU_DEAD::eventt()
 	LPCTSTR str_restart=L"Restart";
 	LPCTSTR str_exit=L"Exit";
 	LPCTSTR str_title=L"You Died";
+	LPCTSTR str_score=L"Score : ";
+	LPCTSTR str_judge;
+	int num_judge=0;
+	if(new_data.co_room_count<10)
+	{	str_judge=L"Level : Weak";  num_judge=12;}
+	else if(new_data.co_room_count<30)
+	{	str_judge=L"Level : Good"; num_judge=12;}
+	else if(new_data.co_room_count<100)
+	{	str_judge=L"Level : Fantastic"; num_judge=17;}
+	else 
+	{	str_judge=L"Level£º???"; num_judge=11;}
 	SetBkColor(hdc, RGB(0,0,0));
 	SetTextColor(hdc,RGB(255,255,255));
 	::SetDCPenColor(hdc, RGB(255,0,0));  
 	::SetDCBrushColor(hdc,RGB(255,0,0)); 
 	::SelectObject(hdc,GetStockObject(DC_PEN));
 	::SelectObject(hdc,GetStockObject(DC_BRUSH));
-	Ellipse(hdc,610,565,620,575);
+	Ellipse(hdc,610,615,620,625);
+	int co_score=new_data.co_room_count,cc=0; char co_ch[100],ch[100];
+	if(new_data.co_room_count==0)
+	{ch[0]='0'; cc=1;}
+	else
+	{
+		while(co_score)
+		{
+			co_ch[cc++]=(co_score%10+'0');
+			co_score/=10;
+		}
+		for(int i=0; i<cc; i++)
+			ch[cc-i-1]=co_ch[i];
+	}
+	wchar_t *str_sc = new wchar_t[cc];
+	MultiByteToWideChar(0,0,ch,-1,str_sc,cc);
 	while(1)	
 	{
 		SelectObject(hdc,hFont_title);
 		TextOut(hdc,500,200,str_title,8);
+		SelectObject(hdc,hFont_sub_title);
+		TextOut(hdc,650,400,str_score,8);
+		TextOut(hdc,650,450,str_judge,num_judge);
+		TextOut(hdc,780,401,str_sc,cc);
 		SelectObject(hdc,hFont);
-		TextOut(hdc,640,530,str_restart,7);
-		TextOut(hdc,695,630,str_exit,4);
-		TextOut(hdc,695,630,str_exit,4);
+		TextOut(hdc,640,580,str_restart,7);
+		TextOut(hdc,695,680,str_exit,4);
+		TextOut(hdc,695,680,str_exit,4);
 		if(_kbhit())
 		{
 			char aaa=_getch();
@@ -2639,16 +2715,16 @@ void MENU_DEAD::eventt()
 					tem_status=tem_status<2?tem_status+1:1;
 				::SetDCPenColor(hdc, RGB(0,0,0));  
 				::SetDCBrushColor(hdc,RGB(0,0,0)); 
-				Ellipse(hdc,610,565,620,575);
-				Ellipse(hdc,665,665,675,675);
+				Ellipse(hdc,610,615,620,625);
+				Ellipse(hdc,665,715,675,725);
 			}
 		}
 		::SetDCPenColor(hdc, RGB(255,0,0));  
 		::SetDCBrushColor(hdc,RGB(255,0,0)); 
 		if(tem_status==1)
-		{Ellipse(hdc,610,565,620,575);}
+			Ellipse(hdc,610,615,620,625);
 		else if(tem_status==2)
-		{Ellipse(hdc,665,665,675,675);}
+			Ellipse(hdc,665,715,675,725);
 	}
 	switch(tem_status)
 	{

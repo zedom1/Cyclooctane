@@ -2,6 +2,7 @@
 #define MY_GAME
 
 #include<iostream>
+#include <fstream>
 #include<cmath>
 #include<stdio.h>
 #include <time.h>
@@ -86,6 +87,7 @@ struct Bullet
 	double xita;
 	bool exist;
 	double speed;
+	bool special;
 	int life;
 	Bullet *nex;
 public:
