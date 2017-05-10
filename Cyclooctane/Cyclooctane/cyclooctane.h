@@ -137,6 +137,7 @@ public:
 	double speed;
 	int num_edge;
 	bool exist;
+	int special;
 	Monster(int num);
 	Monster();
 	POINT pos[10];
@@ -146,7 +147,7 @@ public:
 	void print_now(int x, int y, int num, POINT pos[]);
 	void new_point(int x, int y, int num, POINT pos[]);
 	void print_old(int x, int y, int num, POINT pos[]);
-	void create_new_monster();
+	void create_new_monster(int x, int y);
 };
 
 struct Obstacle // 障碍
@@ -189,7 +190,6 @@ public:
 	double angle,init;   //init为初始角度 ,angle为变化角度
 	POINT pos[10];
 	POINT edge1[5],edge2[5],edge3[5],edge4[5];
-	POINT teleport[4][2];
 	POINT corner[4];
 	Square();
 	virtual void new_room_point (double pos_x, double pos_y, double angle , POINT pos[]); //更新坐标数组
@@ -215,7 +215,7 @@ public:
 	void new_room(int a);// 新房间
 	void new_door(POINT door[], double angle);// 生成并画门
 	void update_monster(int x, int y);
-	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path);
+	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path, int special);
 };
 
 struct Game
@@ -230,12 +230,12 @@ struct Game
 public:
 	Game();
 	void startup();
-	void updateWithInput();
-	void updateWithoutInput();
+	void updateWithInput(); // 与输入相关的更新
+	void updateWithoutInput(); // 与输入无关的更新
 	void show();
-	static void clear();
-	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita);
-	void update_bullet();
+	static void clear();  //　清屏
+	void judge_bullet(int start, int end, POINT pos[], double x, double y, double &xita); //子弹反弹
+	void update_bullet(); // 子弹更新、杀敌
 	bool judge_coll_chara_to_wall();
 	void print_new();
 	void judge_coll_mon_to_wall();
@@ -245,9 +245,9 @@ public:
 	void judge_coll_cha_to_obstacle();
 	void judge_coll_mon_to_corner(int i);
 	void judge_coll_mon_to_obstacle();
-	void fresh_map();
-	void fresh_room();
-	void bomb_hurt();
+	void fresh_map();  // 实时更新地图
+	void fresh_room(); // 房间切换判定
+	void bomb_hurt(); //第三形态普攻爆炸判定
 };
 
 struct Data_Base
@@ -262,15 +262,15 @@ struct Data_Base
 	int co_num_monster_fresh;
 	int co_room_count;
 	int co_Monster_num_count;
+	int current_state;
+	Bullet store_bul[100]; int num_store_bul;
 	~Data_Base();
 	Data_Base();
-	Data_Base(const Data_Base& a);
-	void store_data(const Data_Base& a);  // 复制数据
 	void store_data(const Game& b);  // 保存当前数据（备份）
 	void fresh_data();  // 重置数据
 	void set_data(Game& a);   // 数据上传至游戏
 	void write_data();    // 存档（从文件）
-	void read_data();    // 读档（从文件）
+	bool read_data();    // 读档（从文件）
 };
 
 struct State  
@@ -325,6 +325,7 @@ struct FSM
 {  	
 public:  
 	static void reset();  
+	static void change(int n);
 	static State *current;
 };
 
