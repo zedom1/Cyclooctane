@@ -147,7 +147,7 @@ public:
 	void print_now(int x, int y, int num, POINT pos[]);
 	void new_point(int x, int y, int num, POINT pos[]);
 	void print_old(int x, int y, int num, POINT pos[]);
-	void create_new_monster(int x, int y);
+	void create_new_monster(int x, int y, Square square);
 };
 
 struct Obstacle // 障碍
@@ -171,6 +171,7 @@ struct Stab:public Obstacle
 	virtual void new_point();
 	void print_now(double angle);
 	void reset();
+	void fresh_point();
 	Stab();
 	Stab(double x, double y);
 };
@@ -181,6 +182,7 @@ struct Stone:public Obstacle
 	Stone(double x, double y);
 	void reset();
 	void print_now(double angle);
+	void fresh_point();
 };
 
 struct Square
@@ -214,7 +216,7 @@ public:
 	int time_max;//　时间上限，每个房间随机生成，但总体随闯关进行而上升
 	void new_room(int a);// 新房间
 	void new_door(POINT door[], double angle);// 生成并画门
-	void update_monster(int x, int y);
+	void update_monster(int x, int y, Square square);
 	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path, int special);
 };
 
@@ -342,4 +344,5 @@ void initi();  // 窗体初始化
 double point_to_line(POINT a, POINT head, POINT last); // 点到线段距离
 bool judge_coll_single(POINT first[], int num_first, POINT second[], int num_second, Vector &shadow, double& num_move);  // 碰撞检测
 bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int num_second);
+bool judge_p_left_right(POINT a, POINT line1, POINT line2);
 #endif

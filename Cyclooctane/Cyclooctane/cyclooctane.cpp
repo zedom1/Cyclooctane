@@ -48,36 +48,36 @@ void gotoxy(int x,int y)
 }
 int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
 {
-	double pos_x=900-360;  //pos_y=495-360;
+	double pos_x=900-495;  //pos_y=495-360;
 	int ans1=((x-pos_x)/(2*Obstacle::r) );
 	double ans=(ans1)*2*Obstacle::r+pos_x+Obstacle::r;
 	return ans;
 } 
 int normalize_y(double y)   //找到坐标所在方格的中心点y坐标
 {
-	double pos_y=495-360;
+	double pos_y=495-495;
 	int ans1=((y-pos_y)/(2*Obstacle::r) );
 	double ans=(ans1)*2*Obstacle::r+pos_y+Obstacle::r;
 	return ans;
 }
 int get_i(double x)   //该中心对应mapp的i值
 {
-	double pos_x=900-360;
+	double pos_x=900-495;
 	return (x-pos_x-Obstacle::r)/(2*Obstacle::r);
 }
 int get_j(double y)  // 该中心对应mapp的j值
 {
-	double pos_y=495-360;
+	double pos_y=495-495;
 	return (y-pos_y-Obstacle::r)/(2*Obstacle::r);
 }
 int get_x_from_i(int i)
 {
-	double pos_x=900-360;
+	double pos_x=900-495;
 	return (i*(2*Obstacle::r))+pos_x+Obstacle::r;
 }
 int get_y_from_j(int j)
 {
-	double pos_y=495-360;
+	double pos_y=495-495;
 	return (j*(2*Obstacle::r))+pos_y+Obstacle::r;
 }
 void quicksort(int first, int last , Node* a)
@@ -265,6 +265,11 @@ bool judge_circle_coll(Vector circle_up, Vector circle_down,POINT second[],int n
 	
 	return true;  //true代表发生了碰撞
 }
+bool judge_p_left_right(POINT a, POINT line1, POINT line2)
+{  // line1 -> line2
+	double x=(line2.x-line1.x)*(a.y-line1.y)-(line2.y-line1.y)*(a.x-line1.x);
+	return x<0; // x>0-> false -> left   // x<0->true -> right
+}
 void initi()
 {
 	srand(time(0));
@@ -420,7 +425,7 @@ void Game::startup()
 	death_count=0;
 	judge_update=0;
 	room.new_room(room_count);
-	room_count=0;
+	room_count=1;
 }
 void Game::clear()
 {
@@ -472,15 +477,13 @@ void Game::updateWithoutInput()
 	judge_coll_mon_to_wall();
 	judge_coll_mon_to_obstacle();
 	
-	
 	//////// update ///////////
 	ben.update();
 	update_bullet();
 	fresh_map();
-	room.update_monster(ben.pos_x, ben.pos_y);
+	room.update_monster(ben.pos_x, ben.pos_y, square);
 	fresh_room();
 	//////// judge  collision ////////
-	
 	
 }
 void Game::update_bullet()
@@ -777,6 +780,7 @@ void Game::updateWithInput()
 		char order=_getch();
 		if(order=='q')
 		{
+			clear();
 			if(ben.mod==1)
 			{
 				if(ben.judge_cha_state==0)
@@ -1284,13 +1288,13 @@ void Room::new_room(int a)
 	num_monster_fresh=0;
 	
 }
-void Room::update_monster(int x, int y)
+void Room::update_monster(int x, int y, Square square)
 {
 	num_monster_fresh++;
 	if(num_monster_fresh>10)
 	{	
 		num_monster_fresh=0;
-		monster[Monster::num_count++].create_new_monster(x,y);
+		monster[Monster::num_count++].create_new_monster(x,y,square);
 		Monster::num_total++;
 		if(Monster::num_count>400)
 			Monster::num_count=0;
@@ -1452,10 +1456,10 @@ while(findd==false)
 			if( (mapp[i][j].ground&(1))!=0) 
 				continue;
 		if(special==1)
-			if( ( (mapp[i][j].ground>>3)&(1))!=0  && ( ( (mapp[i][j].ground>>1 )&(1))==0) ) 
+			if( ( (mapp[i][j].ground>>3)&(1))!=0  && ( ( (mapp[i][j].ground>>1 )&(1))==0) && ( (mapp[i][j].ground&(1))!=0) ) 
 				continue;
 		if(special==2)
-			if( ( (mapp[i][j].ground>>4)&(1))!=0  && ( ( (mapp[i][j].ground>>1 )&(1))==0) )
+			if( ( (mapp[i][j].ground>>4)&(1))!=0  && ( ( (mapp[i][j].ground>>1 )&(1))==0) && ( (mapp[i][j].ground&(1))!=0) )
 				continue;
 		mapp[i][j].fa=mapp[now_x][now_y].pos;
 		if( i==now_x || j==now_y ) // 判断是否是斜对角
@@ -1716,7 +1720,8 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 		print_cha_new(pos_x,pos_y,print_chara);	 
 		return; 
 	}
-	if(Bullet::num_time_count<3 && !( mod==3 && judge_cha_state==1 )) return;
+	if(Bullet::num_time_count<3 && !( mod==3 && judge_cha_state==1 )) 
+		return;
 	Bullet::num_time_count=0;
 	if((GetAsyncKeyState(VK_UP)<0)||(GetAsyncKeyState(VK_DOWN)<0)||(GetAsyncKeyState(VK_LEFT)<0)||(GetAsyncKeyState(VK_RIGHT)<0))
 	{	
@@ -1786,7 +1791,8 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 		{
 			if(judge_cha_state==0)
 			{	
-				if(num_bul!=0 ) return;
+				
+				if(num_bul!=0 || (num_count[mod]<=1 &&num_count[mod]!=-1 )) return;
 				num_bul=1;
 				if(GetAsyncKeyState(VK_UP)<0) 
 					head=new Bullet(pos_x,pos_y-25,pi/2);
@@ -1896,8 +1902,6 @@ void Charactor::set_new_data()
 {
 	pos_x=1100; 
 	pos_y=680;
-	speed=10;
-	
 	judge_cha_state=false;
 	judge_hurt=-1;
 	judge_dir=1;
@@ -1911,7 +1915,7 @@ void Charactor::set_new_data()
 		for(int i=0; i<7; i++) name[i]=temp[i];name[7]='\0';
 		head=new Bullet(pos_x,pos_y,0);
 		last=head;
-		
+		speed=12;
 		head->nex=NULL;
 		range=20;
 	}
@@ -1921,6 +1925,7 @@ void Charactor::set_new_data()
 		char temp[]="Cyclohexadiene";
 		for(int i=0; i<14; i++) name[i]=temp[i];name[14]='\0';
 		range=550;
+		speed=7;
 	}
 	if(mod==3)
 	{
@@ -1928,6 +1933,7 @@ void Charactor::set_new_data()
 		char temp[]="Pyran";
 		for(int i=0; i<5; i++) name[i]=temp[i];name[5]='\0';
 		range=15;
+		speed=10;
 	}
 }
 void Charactor::update()
@@ -1995,16 +2001,16 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	};
 	POINT  tedge1[]=
 	{
-		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),
-		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),
+		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle), //左上近
+		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),  //左下近
 		squ_x+r1*cos(init*5.0+angle),     squ_y-r1*sin(init*5.0+angle),
 		squ_x+r1*cos(init*3.0+angle),     squ_y-r1*sin(3.0*init+angle),
 		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle)
 	};
 	POINT tedge2[]=
 	{
-		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),
-		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle),
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle), //右下近
+		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle),  //右上近
 		squ_x+r1*cos(init+angle),     squ_y-r1*sin(init+angle),
 		squ_x+r1*cos(-init+angle),     squ_y-r1*sin(-init+angle),
 		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle)
@@ -2012,7 +2018,7 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	POINT tedge3[]=
 	{
 		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle),		//左下近
-		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle),
+		squ_x+r2*cos(-init+angle),     squ_y-r2*sin(-init+angle), //右下近
 		squ_x+r1*cos(-init+angle),     squ_y-r1*sin(-init+angle),
 		squ_x+r1*cos(init*5.0+angle),     squ_y-r1*sin(init*5.0+angle),		//左下远
 		squ_x+r2*cos(init*5.0+angle),     squ_y-r2*sin(init*5.0+angle)
@@ -2020,7 +2026,7 @@ void Square::new_room_point(double squ_x, double squ_y, double angle , POINT pos
 	POINT tedge4[]=
 	{
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle),		//右上近
-		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle),
+		squ_x+r2*cos(init*3.0+angle),     squ_y-r2*sin(3.0*init+angle), //左上近
 		squ_x+r1*cos(init*3.0+angle),     squ_y-r1*sin(3.0*init+angle),
 		squ_x+r1*cos(init+angle),     squ_y-r1*sin(init+angle),		//右上远
 		squ_x+r2*cos(init+angle),     squ_y-r2*sin(init+angle)
@@ -2248,7 +2254,7 @@ void Monster::print_old(int x, int y, int num, POINT pos[])
 	::SetDCBrushColor(hdc,RGB(0,0,0)); 
 	Polygon(hdc,pos ,num+1);
 }
-void Monster::create_new_monster(int x,int y)
+void Monster::create_new_monster(int x,int y, Square square)
 {
 	exist=true;
 	int rand1=rand()%2==0?1:-1,rand2=rand()%2==0?1:-1;
@@ -2259,12 +2265,18 @@ void Monster::create_new_monster(int x,int y)
 	case 3: speed=7; break;
 	default: special=0; speed=5;
 	}
-	pos_x=rand1*rand()%300+900;   // 900 495
-	pos_y=rand2*rand()%300+495;
-	while( ((pos_x-x)*(pos_x-x)+(pos_y-y)*(pos_y-y))<75*75   )
+	int flag=1;
+	while( flag>0 )
 	{
+		flag=0;
 		pos_x=rand1*rand()%300+900;   // 900 495
 		pos_y=rand2*rand()%300+495;
+		POINT tem={pos_x,pos_y};
+		if(((pos_x-x)*(pos_x-x)+(pos_y-y)*(pos_y-y))<75*75) flag++;
+		if( judge_p_left_right(tem,square.edge1[0],square.edge1[1])==false ) flag++;
+		if( judge_p_left_right(tem,square.edge2[0],square.edge2[1])==false ) flag++;
+		if( judge_p_left_right(tem,square.edge3[0],square.edge3[1])==false ) flag++;
+		if( judge_p_left_right(tem,square.edge4[0],square.edge4[1])==false ) flag++;
 	}
 	num_edge=rand()%4+3;
 	path.x=pos_x;
@@ -2341,6 +2353,21 @@ void Stab::new_point()
 	{
 		pos[i].x=edge1[i].x;pos[i].y=edge1[i].y;
 	}
+	
+}
+void Stab::reset()
+{
+	judge_show=true;
+	count=rand()%5;
+	count_max=rand()%7+15;
+	int c=rand()%3;
+	if(c==2) count_max=MAX_INT;
+	int rand1=rand()%2-1,rand2=rand()%2-1;
+	pos_x=rand()%12+6;    // 900 495
+	pos_y=rand()%12+6;
+	pos_x=get_x_from_i(pos_x);
+	pos_y=get_y_from_j(pos_y);
+	new_point();
 	Vector a(pos_x-900,495-pos_y);
 	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
 	if(abs(tem)<1e-6)  init=0;
@@ -2357,35 +2384,23 @@ void Stab::new_point()
 	}
 	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
 }
-void Stab::reset()
+void Stab::fresh_point()
 {
-	judge_show=true;
-	count=rand()%5;
-	count_max=rand()%7+15;
-	int c=rand()%3;
-	if(c==2) count_max=MAX_INT;
-	int rand1=rand()%2-1,rand2=rand()%2-1;
-	pos_x=rand()%12+3;    // 900 495
-	pos_y=rand()%12+3;
-	pos_x=get_x_from_i(pos_x);
-	pos_y=get_y_from_j(pos_y);
-	new_point();
-	
-}
-
-Stone::Stone()
-{
-	reset();
-}
-Stone::Stone(double x, double y)
-{
-	pos_x=x; pos_y=y;
-	new_point();
-	Vector a(900-pos_x,495-pos_y);
-	init=acosf( (a.x-1) / a.get_lenth());
-}
-void Stone::new_point()
-{
+	int tot=0;
+	for(int i=0 ;i<3; i++)
+	{
+		POINT tem_stab[]=
+		{pos_x-r+5,pos_y-r+tot+10,pos_x-r+10,pos_y-r+tot+5,pos_x-r+15,pos_y-r+tot+10,pos_x-r+20,pos_y-r+tot+5,pos_x-r+25,pos_y-r+tot+10,pos_x-r+30,pos_y-r+tot+5,pos_x-r+35,pos_y-r+tot+10};
+		for(int i=0; i<7; i++)
+		{stab[i].x=tem_stab[i].x;stab[i].y=tem_stab[i].y;}
+		tot+=13;
+	//	SelectObject(hdc,pen_black);
+		//Polyline(hdc,stab,7);
+	//	::SelectObject(hdc,GetStockObject(DC_PEN));
+	//	::SelectObject(hdc,GetStockObject(DC_BRUSH));
+	}
+//	::SelectObject(hdc,GetStockObject(DC_PEN));
+//	::SelectObject(hdc,GetStockObject(DC_BRUSH));
 	POINT edge1[]=
 	{
 		pos_x-r,pos_y-r,pos_x-r,pos_y+r,pos_x+r,pos_y+r,pos_x+r,pos_y-r,pos_x-r,pos_y-r
@@ -2409,6 +2424,30 @@ void Stone::new_point()
 			init=pi-init;
 	}
 	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
+}
+
+Stone::Stone()
+{
+	reset();
+}
+Stone::Stone(double x, double y)
+{
+	pos_x=x; pos_y=y;
+	new_point();
+	Vector a(900-pos_x,495-pos_y);
+	init=acosf( (a.x-1) / a.get_lenth());
+}
+void Stone::new_point()
+{
+	POINT edge1[]=
+	{
+		pos_x-r,pos_y-r,pos_x-r,pos_y+r,pos_x+r,pos_y+r,pos_x+r,pos_y-r,pos_x-r,pos_y-r
+	};
+	for(int i=0; i<5; i++)
+	{
+		pos[i].x=edge1[i].x;pos[i].y=edge1[i].y;
+	}
+	
 	return;
 }
 void Stone::print_now(double angle)
@@ -2425,12 +2464,53 @@ void Stone::print_now(double angle)
 void Stone::reset()
 {
 	int rand1=rand()%2-1,rand2=rand()%2-1;
-	pos_x=rand()%12+3;    // 900 495
-	pos_y=rand()%12+3;
+	pos_x=rand()%12+6;    // 900 495
+	pos_y=rand()%12+6;
 	pos_x=get_x_from_i(pos_x);
 	pos_y=get_y_from_j(pos_y);
 	new_point();
-	
+	Vector a(pos_x-900,495-pos_y);
+	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
+	if(abs(tem)<1e-6)  init=0;
+	else
+	{
+		init=asinf((495-pos_y)/tem);
+		if((pos_x-900)>1e-6)
+		{
+			if((495-pos_y)>1e-6) init=init;
+			else init=init+pi2;
+		}
+		else
+			init=pi-init;
+	}
+	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
+}
+void Stone::fresh_point()
+{
+	//new_point();
+	POINT edge1[]=
+	{
+		pos_x-r,pos_y-r,pos_x-r,pos_y+r,pos_x+r,pos_y+r,pos_x+r,pos_y-r,pos_x-r,pos_y-r
+	};
+	for(int i=0; i<5; i++)
+	{
+		pos[i].x=edge1[i].x;pos[i].y=edge1[i].y;
+	}
+	Vector a(pos_x-900,495-pos_y);
+	double tem=sqrt((pos_x-900)*((pos_x-900))+(pos_y-495)*(pos_y-495));
+	if(abs(tem)<1e-6)  init=0;
+	else
+	{
+		init=asinf((495-pos_y)/tem);
+		if((pos_x-900)>1e-6)
+		{
+			if((495-pos_y)>1e-6) init=init;
+			else init=init+pi2;
+		}
+		else
+			init=pi-init;
+	}
+	dis=sqrt( (900-pos_x)*(900-pos_x) + (495-pos_y)*(495-pos_y) );
 }
 
 /////////// Status ////////////////
@@ -2635,7 +2715,7 @@ void ON_GAME::eventt()
 		{
 			gamestatus=5; break;
 		}
-		if(cyclooctane.room_count%2==0&&cyclooctane.room_count&&cyclooctane.judge_update==0)
+		if(cyclooctane.room_count%3==0&&cyclooctane.room_count&&cyclooctane.judge_update==0)
 		{
 			cyclooctane.judge_update=1;
 			gamestatus=7; break;
@@ -2958,11 +3038,21 @@ void CHANGE::eventt()
 		{
 		case 1: new_data.co_ben.life_now=new_data.co_ben.life; break;
 		case 2: new_data.co_ben.life+=3; new_data.co_ben.life_now+=3; break;
-		case 3: new_data.co_ben.speed+=3; break;
-		case 4: if(new_data.co_ben.mod==1 || new_data.co_ben.mod==3) 
-					new_data.co_ben.range+=10;
+		case 3: new_data.co_ben.speed+=2; break;
+		case 4: if(new_data.co_ben.mod==1) 
+					new_data.co_ben.range+=13;
+				else 	if(new_data.co_ben.mod==3) 
+				{		
+					if(new_data.co_ben.judge_cha_state==0)
+						new_data.co_ben.range+=10;
+					else
+						new_data.co_ben.head->speed+=5;
+				}
 				else
+				{
 					new_data.co_ben.range+=50; break;
+				}
+					
 		}
 	}
 	Game::clear();
@@ -3022,9 +3112,11 @@ void Data_Base::set_data(Game& a)
 }
 bool Data_Base::read_data()
 {
+	fresh_data();
 	ifstream load_data("save01.data");
 	if( !load_data.is_open())
 	{  return false;}
+	
 	///////// TOTAL DATA ///////////
 	load_data>>current_state>>co_judge_update>>co_death_count
 		>>co_Bullet_num_time_count>>co_Monster_num_total
@@ -3094,18 +3186,23 @@ bool Data_Base::read_data()
 		load_data>>co_room.stab[i].pos_x>>co_room.stab[i].pos_y
 			>>co_room.stab[i].count>>co_room.stab[i].judge_show
 			>>co_room.stab[i].count_max;
-		co_room.stab[i].new_point();
+	//	co_room.stab[i].new_center(co_square.angle);
+		co_room.stab[i].fresh_point();
+		co_room.stab[i].init-=co_square.angle;
 	}
 	for(int i=0; i<co_room.num_stone; i++)
 	{	
 		load_data>>co_room.stone[i].pos_x>>co_room.stone[i].pos_y;
-		co_room.stone[i].new_point();
+	//	co_room.stone[i].new_center(co_square.angle);
+		co_room.stone[i].fresh_point();
+		co_room.stone[i].init-=co_square.angle;
 	}
 	for(int i=0; i<co_Monster_num_total; i++)
 	{
 		load_data>>co_room.monster[i].pos_x>>co_room.monster[i].pos_y
 			>>co_room.monster[i].speed>>co_room.monster[i].num_edge
 			>>co_room.monster[i].special;
+		co_room.monster[i].exist=true;
 		co_room.monster[i].new_point(co_room.monster[i].pos_x,co_room.monster[i].pos_y,co_room.monster[i].num_edge,co_room.monster[i].pos);
 	}
 	
