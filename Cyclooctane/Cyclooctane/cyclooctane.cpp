@@ -38,14 +38,6 @@ Data_Base new_data;
 Node mapp[45][45];
 
 /////////// 全局函数 ////////////////
-void gotoxy(int x,int y)
-{
-	COORD pos111;
-	pos111.X = x;
-	pos111.Y = y;
-	SetConsoleCursorPosition( GetStdHandle(STD_OUTPUT_HANDLE),pos111);
-	SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE),0x01|0x05);
-}
 int normalize_x(double x)  //找到坐标所在方格的中心点x坐标
 {
 	double pos_x=900-495;  //pos_y=495-360;
@@ -740,9 +732,9 @@ void Game::update_bullet()
 		}
 		else // float
 		{
-			ben.head->print_bul_new(ben.head->pos_x,ben.head->pos_y);
-			Vector circle_up(ben.head->pos_x-30,ben.head->pos_y-30),circle_down(ben.head->pos_x+30,ben.head->pos_y+30);
-			judge_bullet(5,8,square.pos,ben.head->pos_x, ben.head->pos_y, ben.head->xita);
+			ben.special.print_bul_new(ben.special.pos_x,ben.special.pos_y);
+			Vector circle_up(ben.special.pos_x-30,ben.special.pos_y-30),circle_down(ben.special.pos_x+30,ben.special.pos_y+30);
+			judge_bullet(5,8,square.pos,ben.special.pos_x, ben.special.pos_y, ben.special.xita);
 			for(int i=0; i<400; i++)
 				if(room.monster[i].exist==true)
 					if( judge_circle_coll(circle_up,circle_down,room.monster[i].pos,room.monster[i].num_edge)==true  )
@@ -806,21 +798,23 @@ void Game::updateWithInput()
 			}
 			if(ben.mod==3)
 			{
-				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
-				ben.head->special=!ben.head->special;
-				ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
-				ben.head->exist=true;
-				if(ben.judge_cha_state!=0)
+				if(ben.judge_cha_state!=0)  // float -> bomb
+				{	
+					ben.special.print_bul_old(ben.special.pos_x,ben.special.pos_y);
 					ben.num_bul=0;
-				else
+					ben.special.exist=false;
+				}
+				else  // bomb -> float 
 				{
 					::SelectObject(hdc,GetStockObject(DC_PEN));
 					::SelectObject(hdc,GetStockObject(DC_BRUSH));
 					::SetDCPenColor(hdc, RGB(0,0,0));
 					::SetDCBrushColor(hdc,RGB(0,0,0));
-					Ellipse( hdc,ben.head->pos_x-75, ben.head->pos_y-75, ben.head->pos_x+75, ben.head->pos_y+75);
-					ben.head->pos_x=ben.pos_x;
-					ben.head->pos_y=ben.pos_y;
+					Ellipse( hdc,ben.head->pos_x-75, ben.head->pos_y-75, ben.head->pos_x+75, ben.head->pos_y+75 );
+					ben.special.pos_x=ben.pos_x;
+					ben.special.pos_y=ben.pos_y;
+					ben.special.exist=true;
+					ben.special.special=true;
 				}
 				ben.judge_cha_state=1-ben.judge_cha_state;
 			}
@@ -1160,7 +1154,10 @@ void Game::fresh_map()
 void Game::fresh_room()
 {
 	if(room.time_count==room.time_max) 
+	{	
 		ben.head->print_bul_old(ben.head->pos_x,ben.head->pos_y);
+		ben.special.print_bul_old(ben.special.pos_x,ben.special.pos_y);
+	}
 	if(room.time_count>=room.time_max) 
 	{	
 		Vector tem; double tem1;
@@ -1492,6 +1489,16 @@ while(findd==false)
 	path=ans;
 	return;
 }
+Room	 Room::operator = (const Room & a )
+{
+/*	this->num_stab=a.num_stab;
+	this->num_stone=a.num_stone;
+	this->rand_c=a.rand_c;
+	this->time_max=a.time_max;
+	for(int i=0; i<5; i++) this->door[i]=a.door[i];
+	for(int i=0; i<500; i++) this->monster[i]=a.monster[i];
+	*/
+}
 
 /////////// Charactor ////////////////
 Charactor::Charactor() // 默认1号
@@ -1512,8 +1519,9 @@ Charactor::Charactor() // 默认1号
 	for(int i=0; i<7; i++) name[i]=temp[i];name[7]='\0';
 	num_bul=0;
 	head=new Bullet(pos_x,pos_y,0);
-	last=head;
+	head->exist=false;
 	head->nex=NULL;
+	last=head;
 	range=20;
 	life_now=life=12;
 }
@@ -1747,7 +1755,7 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 			if(GetAsyncKeyState(VK_LEFT)<0) 
 			{	
 				Ellipse(hdc,x-25,y-10,x-5,y+10); 
-				last->nex=new Bullet(pos_x-25,pos_y,pi+0.1);
+				last->nex=new Bullet(pos_x-25,pos_y,pi);
 				last=last->nex;
 				return;
 			}
@@ -1761,7 +1769,6 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 		}
 		if(mod==2)
 		{
-			num_bul=1;
 			last_line.life=line.life=range;
 			line.exist=true;
 			last_line.pos_x=line.pos_x=pos_x;
@@ -1805,16 +1812,16 @@ void Charactor::print_round_new(double x,double y,POINT print_chara[])
 			}
 			else
 			{
-				head->print_bul_old(head->pos_x,head->pos_y);
+				special.print_bul_old(special.pos_x,special.pos_y);
 				if(GetAsyncKeyState(VK_UP)<0) 
-					head->pos_y-=head->speed/2;
+					special.pos_y-=special.speed/2;
 				if(GetAsyncKeyState(VK_DOWN)<0) 
-					head->pos_y+=head->speed/2;
+					special.pos_y+=special.speed/2;
 				if(GetAsyncKeyState(VK_LEFT)<0) 
-					head->pos_x-=head->speed/2;
+					special.pos_x-=special.speed/2;
 				if(GetAsyncKeyState(VK_RIGHT)<0) 
-					head->pos_x+=head->speed/2;
-				head->print_bul_new(head->pos_x,head->pos_y);
+					special.pos_x+=special.speed/2;
+				special.print_bul_new(special.pos_x,special.pos_y);
 			}
 		}
 	}
@@ -1914,6 +1921,7 @@ void Charactor::set_new_data()
 		char temp[]="Benzene";
 		for(int i=0; i<7; i++) name[i]=temp[i];name[7]='\0';
 		head=new Bullet(pos_x,pos_y,0);
+		head->exist=false;
 		last=head;
 		speed=12;
 		head->nex=NULL;
@@ -3134,11 +3142,14 @@ bool Data_Base::read_data()
 	for(int i=0; i<co_ben.num_line_array; i++)
 		load_data>>co_ben.line_array[i].x>>co_ben.line_array[i].y;
 	load_data>>co_ben.line.pos_x>>co_ben.line.pos_y>>co_ben.line.xita
-		>>co_ben.line.exist>>co_ben.line.special>>co_ben.line.life;
+		>>co_ben.line.exist>>co_ben.line.life;
 	load_data>>co_ben.last_line.pos_x>>co_ben.last_line.pos_y>>co_ben.last_line.xita
-		>>co_ben.last_line.exist>>co_ben.last_line.special>>co_ben.last_line.life;
+		>>co_ben.last_line.exist>>co_ben.last_line.life;
+	load_data>>co_ben.special.pos_x>>co_ben.special.pos_y>>co_ben.special.xita
+		>>co_ben.special.exist>>co_ben.special.special;
 
 	Bullet *tem=new Bullet ;
+	tem->exist=false;
 	Bullet *fore_tem;
 	co_ben.head=tem;
 	load_data>>num_store_bul;
@@ -3146,31 +3157,31 @@ bool Data_Base::read_data()
 	{
 		load_data>>tem->pos_x>>tem->pos_y
 			>>tem->xita>>tem->exist>>tem->speed
-			>>tem->special>>tem->life;
+			>>tem->life;
 		fore_tem=tem;
-		tem=new Bullet; fore_tem->nex=tem;
 		for(int i=0; i<num_store_bul-1; i++)
 		{	
+			tem=new Bullet; fore_tem->nex=tem;
 			load_data>>tem->pos_x>>tem->pos_y
 				>>tem->xita>>tem->exist>>tem->speed
-				>>tem->special>>tem->life;
-			tem=new Bullet; fore_tem->nex=tem;
-			fore_tem=fore_tem->nex;
+				>>tem->life;
+			if(i!= num_store_bul-2)
+				fore_tem=fore_tem->nex;
 		}
-		fore_tem=NULL;
 		tem->nex=NULL;
-		tem=NULL;
+		co_ben.last=tem;
+		//delete tem;
+		tem=fore_tem=NULL;
 	}
 	else if(num_store_bul==1)
 	{
 		load_data>>tem->pos_x>>tem->pos_y
 			>>tem->xita>>tem->exist>>tem->speed
-			>>tem->special>>tem->life;
+			>>tem->life;
 		tem->nex=NULL;
+		co_ben.last=tem;
 	}
-	else {co_ben.head=NULL; delete tem;}
 	
-
 	///////// Square ////////////
 	load_data>>co_square.pos_x>>co_square.pos_y
 		>>co_square.angle>>co_square.init;
@@ -3197,6 +3208,7 @@ bool Data_Base::read_data()
 		co_room.stone[i].fresh_point();
 		co_room.stone[i].init-=co_square.angle;
 	}
+	memset(co_room.monster,0,sizeof(co_room.monster));
 	for(int i=0; i<co_Monster_num_total; i++)
 	{
 		load_data>>co_room.monster[i].pos_x>>co_room.monster[i].pos_y
@@ -3205,7 +3217,6 @@ bool Data_Base::read_data()
 		co_room.monster[i].exist=true;
 		co_room.monster[i].new_point(co_room.monster[i].pos_x,co_room.monster[i].pos_y,co_room.monster[i].num_edge,co_room.monster[i].pos);
 	}
-	
 	///////// End ///////////
 	load_data.close();
 	return true;
@@ -3238,11 +3249,15 @@ void Data_Base::write_data()
 	for(int i=0; i<co_ben.num_line_array; i++)
 		save_data<<co_ben.line_array[i].x<<endl<<co_ben.line_array[i].y<<endl;
 	save_data<<co_ben.line.pos_x<<endl<<co_ben.line.pos_y<<endl<<co_ben.line.xita<<endl
-		<<co_ben.line.exist<<endl<<co_ben.line.special<<endl<<co_ben.line.life<<endl;
+		<<co_ben.line.exist<<endl<<co_ben.line.life<<endl;
 	save_data<<co_ben.last_line.pos_x<<endl<<co_ben.last_line.pos_y<<endl<<co_ben.last_line.xita<<endl
-		<<co_ben.last_line.exist<<endl<<co_ben.last_line.special<<endl<<co_ben.last_line.life<<endl;
+		<<co_ben.last_line.exist<<endl<<co_ben.last_line.life<<endl;
+	save_data<<co_ben.special.pos_x<<endl<<co_ben.special.pos_y<<endl<<co_ben.special.xita<<endl
+		<<co_ben.special.exist<<endl<<co_ben.special.special<<endl;
 
 	Bullet *tem=co_ben.head;
+	num_store_bul=0;
+	memset(store_bul,0,sizeof(store_bul));
 	while(tem)
 	{
 		store_bul[num_store_bul++]=*tem;
@@ -3252,7 +3267,7 @@ void Data_Base::write_data()
 	for(int i=0; i<num_store_bul; i++)
 		save_data<<store_bul[i].pos_x<<endl<<store_bul[i].pos_y<<endl
 		<<store_bul[i].xita<<endl<<store_bul[i].exist<<endl<<store_bul[i].speed<<endl
-		<<store_bul[i].special<<endl<<store_bul[i].life<<endl;
+		<<store_bul[i].life<<endl;
 	///////// Square ////////////
 	save_data<<co_square.pos_x<<endl<<co_square.pos_y<<endl
 		<<co_square.angle<<endl<<co_square.init<<endl;

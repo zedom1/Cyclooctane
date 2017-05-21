@@ -1,10 +1,10 @@
 #ifndef MY_GAME
 #define MY_GAME
 
-#include<iostream>
+#include <iostream>
 #include <fstream>
-#include<cmath>
-#include<stdio.h>
+#include <cmath>
+#include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,6 +108,7 @@ struct Charactor //角色
 	int judge_hurt; // 受伤后无敌一小段时间
 	Bullet *head,*last;
 	Bullet line,last_line;
+	Bullet special;
 	POINT line_array[100];
 	int num_bul,num_line_array;
 	double speed;
@@ -218,6 +219,7 @@ public:
 	void new_door(POINT door[], double angle);// 生成并画门
 	void update_monster(int x, int y, Square square);
 	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path, int special);
+	Room operator = (const Room & a );
 };
 
 struct Game
@@ -331,7 +333,6 @@ public:
 	static State *current;
 };
 
-void gotoxy(int x,int y);
 int normalize_x(double x);  // 找到坐标所在方格的中心点x坐标
 int normalize_y(double y);   // 找到坐标所在方格的中心点y坐标
 int get_i(double x);   // 该中心对应mapp的i值
