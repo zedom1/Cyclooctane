@@ -219,7 +219,7 @@ public:
 	void new_door(POINT door[], double angle);// 生成并画门
 	void update_monster(int x, int y, Square square);
 	void get_path(int x ,int  y, int aim_x, int aim_y, POINT &path, int special);
-	Room operator = (const Room & a );
+	//Room operator = (const Room & a );
 };
 
 struct Game

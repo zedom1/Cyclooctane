@@ -1489,7 +1489,7 @@ while(findd==false)
 	path=ans;
 	return;
 }
-Room	 Room::operator = (const Room & a )
+/*Room	 Room::operator = (const Room & a )
 {
 /*	this->num_stab=a.num_stab;
 	this->num_stone=a.num_stone;
@@ -1497,8 +1497,8 @@ Room	 Room::operator = (const Room & a )
 	this->time_max=a.time_max;
 	for(int i=0; i<5; i++) this->door[i]=a.door[i];
 	for(int i=0; i<500; i++) this->monster[i]=a.monster[i];
-	*/
-}
+	
+}*/
 
 /////////// Charactor ////////////////
 Charactor::Charactor() // Ä¬ÈÏ1ºÅ
@@ -3118,7 +3118,7 @@ void Data_Base::set_data(Game& a)
 	a.judge_update=co_judge_update;
 	return;
 }
-bool Data_Base::read_data()
+/*bool Data_Base::read_data()
 {
 	fresh_data();
 	ifstream load_data("save01.data");
@@ -3220,8 +3220,8 @@ bool Data_Base::read_data()
 	///////// End ///////////
 	load_data.close();
 	return true;
-}
-void Data_Base::write_data()
+}*/
+/*void Data_Base::write_data()
 {
 	fstream save_data;
 	save_data.open("save01.data",ios::out);
@@ -3292,8 +3292,56 @@ void Data_Base::write_data()
 	///////// end ///////////////
 	save_data.close();
 	return;
-}
+}*/
+bool Data_Base::read_data()
+{
+	fresh_data();
+	ifstream load_data("save01.data",ios::in|ios::binary);
+	if( !load_data.is_open())
+	{  return false;}
 
+	load_data.read((char *)&current_state, sizeof(current_state) );
+	load_data.read((char *)&co_judge_update, sizeof(co_judge_update) );
+	load_data.read((char *)&co_death_count, sizeof(co_death_count) );
+	load_data.read((char *)&co_Bullet_num_time_count, sizeof(co_Bullet_num_time_count) );
+	load_data.read((char *)&co_Monster_num_total, sizeof(co_Monster_num_total) );
+	load_data.read((char *)&co_num_monster_fresh, sizeof(co_num_monster_fresh) );
+	load_data.read((char *)&co_room_count, sizeof(co_room_count) );
+	load_data.read((char *)&co_Monster_num_count, sizeof(co_Monster_num_count) );
+	
+	load_data.read( (char *)&co_ben,sizeof(co_ben) );
+	load_data.read( (char *)&co_square,sizeof(co_square) );
+	load_data.read( (char *)&co_room,sizeof(co_room) );
+	load_data.close();
+	return true;
+}
+void Data_Base::write_data()
+{
+	fstream save_data;
+	save_data.open("save01.data", ios::out|ios::binary);
+	if(FSM::current==&s1) {current_state=1;}
+	else if(FSM::current==&s2) {current_state=2;}
+	else if(FSM::current==&s3) {current_state=3;}
+	else if(FSM::current==&s4) {current_state=4;}
+	else if(FSM::current==&s5) {current_state=5;}
+	else if(FSM::current==&s7) {current_state=7;}
+	else {current_state=6;}
+
+	save_data.write((char *)&current_state, sizeof(current_state) );
+	save_data.write((char *)&co_judge_update, sizeof(co_judge_update) );
+	save_data.write((char *)&co_death_count, sizeof(co_death_count) );
+	save_data.write((char *)&co_Bullet_num_time_count, sizeof(co_Bullet_num_time_count) );
+	save_data.write((char *)&co_Monster_num_total, sizeof(co_Monster_num_total) );
+	save_data.write((char *)&co_num_monster_fresh, sizeof(co_num_monster_fresh) );
+	save_data.write((char *)&co_room_count, sizeof(co_room_count) );
+	save_data.write((char *)&co_Monster_num_count, sizeof(co_Monster_num_count) );
+	
+	save_data.write( (char *)&co_ben,sizeof(co_ben) );
+	save_data.write( (char *)&co_square,sizeof(co_square) );
+	save_data.write( (char *)&co_room,sizeof(co_room) );
+	save_data.close();
+	return;
+}
 /////////// FSM ////////////////
 void FSM::reset()  
 {  
